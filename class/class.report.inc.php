@@ -125,6 +125,27 @@ class report extends db_connect
         return $result;
     }
 
+    public function event($eventId, $abuseId)
+    {
+        $result = array("error" => false,
+                        "error_code" => ERROR_SUCCESS);
+
+        $create_at = time();
+        $ip_addr = helper::ip_addr();
+
+        $stmt = $this->db->prepare("INSERT INTO event_abuse_reports (abuseFromUserId, abuseToEventId, abuseId, createAt, ip_addr) value (:abuseFromUserId, :abuseToEventId, :abuseId, :createAt, :ip_addr)");
+        $stmt->bindParam(":abuseFromUserId", $this->requestFrom, PDO::PARAM_INT);
+        $stmt->bindParam(":abuseToEventId", $eventId, PDO::PARAM_INT);
+        $stmt->bindParam(":abuseId", $abuseId, PDO::PARAM_INT);
+        $stmt->bindParam(":createAt", $create_at, PDO::PARAM_INT);
+        $stmt->bindParam(":ip_addr", $ip_addr, PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        return $result;
+    }
+
+
     public function getPhotoReports()
     {
         $reportId = $this->getMaxPhotoReportId();
