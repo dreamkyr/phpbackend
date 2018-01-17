@@ -16,6 +16,8 @@ $result = array("error" => true);
 
 if (!empty($_POST)) {
 
+    print_r($_POST);
+
     $accountId = isset($_POST['accountId']) ? $_POST['accountId'] : '';
     $accessToken = isset($_POST['accessToken']) ? $_POST['accessToken'] : '';
 
@@ -32,5 +34,6 @@ if (!empty($_POST)) {
     $result = $events_like->update($accountId, $event_id);
 
     echo json_encode($result);
+
     exit;
 }
