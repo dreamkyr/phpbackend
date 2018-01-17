@@ -27,7 +27,7 @@ class geo extends db_connect
         return $number_of_rows = $stmt->fetchColumn();
     }
 
-    public function getPeopleNearby($itemId, $lat, $lng, $distance = 30, $sex = 2)
+    public function getPeopleNearby($itemId, $lat, $lng, $distance = 30)
     {
         if ($itemId == 0) {
 
@@ -45,7 +45,7 @@ class geo extends db_connect
         $origLon = $lng;
         $dist = $distance; // This is the maximum distance (in miles) away from $origLat, $origLon in which to search
 
-        if ($sex == 2) {
+       /* if ($sex == 2) {
 
             $sql = "SELECT id, lat, lng, 3956 * 2 *
                     ASIN(SQRT( POWER(SIN(($origLat - lat)*pi()/180/2),2)
@@ -61,7 +61,7 @@ class geo extends db_connect
                     and (state = 0)
                     having distance < $dist ORDER BY id DESC limit 20";
 
-        } else {
+        } else {*/
 
             $sql = "SELECT id, lat, lng, 3956 * 2 *
                     ASIN(SQRT( POWER(SIN(($origLat - lat)*pi()/180/2),2)
@@ -75,9 +75,8 @@ class geo extends db_connect
                     and (id < $itemId)
                     and (id <> $this->requestFrom)
                     and (state = 0)
-                    and (sex = $sex)
-                    having distance < $dist ORDER BY id DESC limit 20";
-        }
+                    having distance < $dist ORDER BY distance ASC";
+        
 
         $stmt = $this->db->prepare($sql);
 
@@ -89,8 +88,8 @@ class geo extends db_connect
 
                     $profile = new profile($this->db, $row['id']);
                     $profile->setRequestFrom($this->requestFrom);
-                    $profileInfo = $profile->getVeryShort();
-                    $profileInfo['distance'] = round($this->getDistance($lat, $lng, $profileInfo['lat'], $profileInfo['lng']), 1);
+                    $profileInfo = $profile->get();
+                    $profileInfo['distance'] = round($this->getDistance($lat, $lng, $profileInfo['lat'], $profileInfo['lng']));
                     unset($profile);
 
                     array_push($result['items'], $profileInfo);

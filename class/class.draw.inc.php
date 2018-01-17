@@ -4,9 +4,9 @@
  * ifsoft.co.uk engine v1.0
  *
  * http://ifsoft.com.ua, http://ifsoft.co.uk
- * qascript@ifsoft.co.uk
+ * raccoonsquare@gmail.com
  *
- * Copyright 2012-2016 Demyanchuk Dmitry (https://vk.com/dmitry.demyanchuk)
+ * Copyright 2012-2018 Demyanchuk Dmitry (raccoonsquare@gmail.com)
  */
 
 class draw extends db_connect
@@ -21,6 +21,13 @@ class draw extends db_connect
         $time = new language(NULL, $LANG['lang-code']);
 
         $message['message'] = helper::processMsgText($message['message']);
+
+        $seen = false;
+
+        if ($message['fromUserId'] == auth::getCurrentUserId() && $message['seenAt'] != 0 ) {
+
+            $seen = true;
+        }
 
         ?>
 
@@ -47,7 +54,10 @@ class draw extends db_connect
                 ?>
 
             </p>
-            <a href="javascript:void(0)" class="secondary-content"><?php echo $time->timeAgo($message['createAt']); ?></a>
+            <a href="javascript:void(0)" class="secondary-content">
+                <?php echo $time->timeAgo($message['createAt']); ?>
+                <span class="time" style="<?php if (!$seen) echo 'display: none'; ?>" data-my-id="<?php echo $LANG['label-seen']; ?>">| <?php echo $LANG['label-seen']; ?></span>
+            </a>
         </li>
 
         <?php

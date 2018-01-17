@@ -4,9 +4,9 @@
  * ifsoft.co.uk engine v1.0
  *
  * http://ifsoft.com.ua, http://ifsoft.co.uk
- * qascript@ifsoft.co.uk
+ * raccoonsquare@gmail.com
  *
- * Copyright 2012-2016 Demyanchuk Dmitry (https://vk.com/dmitry.demyanchuk)
+ * Copyright 2012-2018 Demyanchuk Dmitry (https://vk.com/dmitry.demyanchuk)
  */
 
 class messages extends db_connect
@@ -330,7 +330,7 @@ class messages extends db_connect
                 }
 
                 $profile = new profile($this->db, $profileId);
-                $profileInfo = $profile->get();
+                $profileInfo = $profile->getVeryShort();
                 unset($profile);
 
                 $result = array("error" => false,
@@ -410,7 +410,7 @@ class messages extends db_connect
                 $time = new language($this->db, $this->language);
 
                 $profile = new profile($this->db, $row['fromUserId']);
-                $profileInfo = $profile->get();
+                $profileInfo = $profile->getVeryShort();
                 unset($profile);
 
                 $result = array("error" => false,
@@ -424,11 +424,39 @@ class messages extends db_connect
                                 "message" => htmlspecialchars_decode(stripslashes($row['message'])),
                                 "imgUrl" => $row['imgUrl'],
                                 "createAt" => $row['createAt'],
+                                "seenAt" => $row['seenAt'],
                                 "date" => date("Y-m-d H:i:s", $row['createAt']),
                                 "timeAgo" => $time->timeAgo($row['createAt']),
                                 "removeAt" => $row['removeAt']);
             }
         }
+
+        return $result;
+    }
+
+    public function info2($row)
+    {
+        $time = new language($this->db, $this->language);
+
+        $profile = new profile($this->db, $row['fromUserId']);
+        $profileInfo = $profile->getVeryShort();
+        unset($profile);
+
+        $result = array("error" => false,
+                        "error_code" => ERROR_SUCCESS,
+                        "id" => $row['id'],
+                        "fromUserId" => $row['fromUserId'],
+                        "fromUserState" => $profileInfo['state'],
+                        "fromUserUsername" => $profileInfo['username'],
+                        "fromUserFullname" => $profileInfo['fullname'],
+                        "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'],
+                        "message" => htmlspecialchars_decode(stripslashes($row['message'])),
+                        "imgUrl" => $row['imgUrl'],
+                        "createAt" => $row['createAt'],
+                        "seenAt" => $row['seenAt'],
+                        "date" => date("Y-m-d H:i:s", $row['createAt']),
+                        "timeAgo" => $time->timeAgo($row['createAt']),
+                        "removeAt" => $row['removeAt']);
 
         return $result;
     }
@@ -500,7 +528,7 @@ class messages extends db_connect
                           "msgId" => $msgId,
                           "messages" => array());
 
-        $stmt = $this->db->prepare("SELECT id FROM messages WHERE chatId = (:chatId) AND id < (:msgId) AND removeAt = 0 ORDER BY id DESC LIMIT 20");
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE chatId = (:chatId) AND id < (:msgId) AND removeAt = 0 ORDER BY id DESC LIMIT 20");
         $stmt->bindParam(':chatId', $chatId, PDO::PARAM_INT);
         $stmt->bindParam(':msgId', $msgId, PDO::PARAM_INT);
 
@@ -508,7 +536,7 @@ class messages extends db_connect
 
             while ($row = $stmt->fetch()) {
 
-                $msgInfo = $this->info($row['id']);
+                $msgInfo = $this->info2($row['id']);
 
                 array_push($messages['messages'], $msgInfo);
 
@@ -531,7 +559,7 @@ class messages extends db_connect
                           "msgId" => $msgId,
                           "messages" => array());
 
-        $stmt = $this->db->prepare("SELECT id FROM messages WHERE chatId = (:chatId) AND id > (:msgId) AND removeAt = 0 ORDER BY id ASC");
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE chatId = (:chatId) AND id > (:msgId) AND removeAt = 0 ORDER BY id ASC");
         $stmt->bindParam(':chatId', $chatId, PDO::PARAM_INT);
         $stmt->bindParam(':msgId', $msgId, PDO::PARAM_INT);
 
@@ -539,7 +567,7 @@ class messages extends db_connect
 
             while ($row = $stmt->fetch()) {
 
-                $msgInfo = $this->info($row['id']);
+                $msgInfo = $this->info2($row['id']);
 
                 array_push($messages['messages'], $msgInfo);
 
@@ -556,9 +584,39 @@ class messages extends db_connect
 
                 $this->setChatLastView_FromId($chatId);
 
+                $msg = new msg($this->db);
+                $msg->setSeen($chatId, $chatInfo['toUserId']);
+                unset($msg);
+
+                // GCM_MESSAGE_ONLY_FOR_PERSONAL_USER = 2
+                // GCM_NOTIFY_SEEN= 15
+                // GCM_NOTIFY_TYPING= 16
+                // GCM_NOTIFY_TYPING_START = 27
+                // GCM_NOTIFY_TYPING_END = 28
+
+                $fcm = new fcm($this->db, $chatInfo['toUserId']);
+                $fcm->setData(15, 2, "Seen", 0, $chatId);
+                $fcm->send();
+                unset($fcm);
+
             } else {
 
                 $this->setChatLastView_ToId($chatId);
+
+                $msg = new msg($this->db);
+                $msg->setSeen($chatId, $chatInfo['fromUserId']);
+                unset($msg);
+
+                // GCM_MESSAGE_ONLY_FOR_PERSONAL_USER = 2
+                // GCM_NOTIFY_SEEN= 15
+                // GCM_NOTIFY_TYPING= 16
+                // GCM_NOTIFY_TYPING_START = 27
+                // GCM_NOTIFY_TYPING_END = 28
+
+                $fcm = new fcm($this->db, $chatInfo['fromUserId']);
+                $fcm->setData(15, 2, "Seen", 0, $chatId);
+                $fcm->send();
+                unset($fcm);
             }
         }
 
@@ -581,7 +639,7 @@ class messages extends db_connect
                           "newMessagesCount" => 0,
                           "messages" => array());
 
-        $stmt = $this->db->prepare("SELECT id FROM messages WHERE chatId = (:chatId) AND id < (:msgId) AND removeAt = 0 ORDER BY id DESC LIMIT 20");
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE chatId = (:chatId) AND id < (:msgId) AND removeAt = 0 ORDER BY id DESC LIMIT 20");
         $stmt->bindParam(':chatId', $chatId, PDO::PARAM_INT);
         $stmt->bindParam(':msgId', $msgId, PDO::PARAM_INT);
 
@@ -589,7 +647,7 @@ class messages extends db_connect
 
             while ($row = $stmt->fetch()) {
 
-                $msgInfo = $this->info($row['id']);
+                $msgInfo = $this->info2($row);
 
                 array_push($messages['messages'], $msgInfo);
 
@@ -606,9 +664,39 @@ class messages extends db_connect
 
                 $this->setChatLastView_FromId($chatId);
 
+                $msg = new msg($this->db);
+                $msg->setSeen($chatId, $chatInfo['toUserId']);
+                unset($msg);
+
+                // GCM_MESSAGE_ONLY_FOR_PERSONAL_USER = 2
+                // GCM_NOTIFY_SEEN= 15
+                // GCM_NOTIFY_TYPING= 16
+                // GCM_NOTIFY_TYPING_START = 27
+                // GCM_NOTIFY_TYPING_END = 28
+
+                $fcm = new fcm($this->db, $chatInfo['toUserId']);
+                $fcm->setData(15, 2, "Seen", 0, $chatId);
+                $fcm->send();
+                unset($fcm);
+
             } else {
 
                 $this->setChatLastView_ToId($chatId);
+
+                $msg = new msg($this->db);
+                $msg->setSeen($chatId, $chatInfo['fromUserId']);
+                unset($msg);
+
+                // GCM_MESSAGE_ONLY_FOR_PERSONAL_USER = 2
+                // GCM_NOTIFY_SEEN= 15
+                // GCM_NOTIFY_TYPING= 16
+                // GCM_NOTIFY_TYPING_START = 27
+                // GCM_NOTIFY_TYPING_END = 28
+
+                $fcm = new fcm($this->db, $chatInfo['fromUserId']);
+                $fcm->setData(15, 2, "Seen", 0, $chatId);
+                $fcm->send();
+                unset($fcm);
             }
         }
 
@@ -635,14 +723,14 @@ class messages extends db_connect
                           "messagesCount" => $this->messagesCountByChat($chatId),
                           "messages" => array());
 
-        $stmt = $this->db->prepare("SELECT id FROM messages WHERE chatId = (:chatId) AND removeAt = 0 ORDER BY id ASC");
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE chatId = (:chatId) AND removeAt = 0 ORDER BY id ASC");
         $stmt->bindParam(':chatId', $chatId, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             while ($row = $stmt->fetch()) {
 
-                $msgInfo = $this->info($row['id']);
+                $msgInfo = $this->info2($row);
 
                 array_push($messages['messages'], $msgInfo);
 
@@ -666,7 +754,7 @@ class messages extends db_connect
                         "msgId" => $msgId,
                         "messages" => array());
 
-        $stmt = $this->db->prepare("SELECT id FROM messages WHERE id < (:msgId) AND removeAt = 0 ORDER BY id DESC LIMIT 20");
+        $stmt = $this->db->prepare("SELECT * FROM messages WHERE id < (:msgId) AND removeAt = 0 ORDER BY id DESC LIMIT 20");
         $stmt->bindParam(':msgId', $msgId, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
@@ -675,7 +763,7 @@ class messages extends db_connect
 
                 while ($row = $stmt->fetch()) {
 
-                    $msgInfo = $this->info($row['id']);
+                    $msgInfo = $this->info2($row);
 
                     array_push($result['messages'], $msgInfo);
 

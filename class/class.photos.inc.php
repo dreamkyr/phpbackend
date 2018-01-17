@@ -4,9 +4,9 @@
  * ifsoft.co.uk engine v1.0
  *
  * http://ifsoft.com.ua, http://ifsoft.co.uk
- * qascript@ifsoft.co.uk
+ * raccoonsquare@gmail.com
  *
- * Copyright 2012-2016 Demyanchuk Dmitry (https://vk.com/dmitry.demyanchuk)
+ * Copyright 2012-2018 Demyanchuk Dmitry (raccoonsquare@gmail.com)
  */
 
 class photos extends db_connect
@@ -100,6 +100,26 @@ class photos extends db_connect
             $account = new account($this->db, $this->requestFrom);
             $account->updateCounters();
             unset($account);
+        }
+
+        return $result;
+    }
+
+    public function removeAll() {
+
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $currentTime = time();
+
+        $stmt = $this->db->prepare("UPDATE photos SET removeAt = (:removeAt) WHERE fromUserId = (:fromUserId) AND removeAt = 0");
+        $stmt->bindParam(":fromUserId", $this->requestFrom, PDO::PARAM_INT);
+        $stmt->bindParam(":removeAt", $currentTime, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $result = array("error" => false,
+                            "error_code" => ERROR_SUCCESS);
         }
 
         return $result;
@@ -349,7 +369,7 @@ class photos extends db_connect
 
                     $profile = new profile($this->db, $row['fromUserId']);
                     $profile->setRequestFrom($this->requestFrom);
-                    $profileInfo = $profile->get();
+                    $profileInfo = $profile->getVeryShort();
                     unset($profile);
 
                     array_push($likers['likers'], $profileInfo);
@@ -389,7 +409,7 @@ class photos extends db_connect
                 }
 
                 $profile = new profile($this->db, $row['fromUserId']);
-                $profileInfo = $profile->get();
+                $profileInfo = $profile->getVeryShort();
                 unset($profile);
 
                 $result = array("error" => false,
@@ -417,6 +437,7 @@ class photos extends db_connect
                                 "rating" => $row['rating'],
                                 "commentsCount" => $row['commentsCount'],
                                 "likesCount" => $row['likesCount'],
+
                                 "myLike" => $myLike,
                                 "createAt" => $row['createAt'],
                                 "date" => date("Y-m-d H:i:s", $row['createAt']),
