@@ -4,9 +4,9 @@
  * ifsoft.co.uk engine v1.0
  *
  * http://ifsoft.com.ua, http://ifsoft.co.uk
- * qascript@ifsoft.co.uk
+ * raccoonsquare@gmail.com
  *
- * Copyright 2012-2017 Demyanchuk Dmitry (https://vk.com/dmitry.demyanchuk)
+ * Copyright 2012-2018 Demyanchuk Dmitry (raccoonsquare@gmail.com)
  */
 
 class msg extends db_connect
@@ -111,14 +111,19 @@ class msg extends db_connect
         return $chatId;
     }
 
-    public function create($toUserId, $chatId,  $message = "", $imgUrl = "", $chatFromUserId = 0, $chatToUserId = 0, $deviceId = "", $listId = 0, $ios_deviceId = "")
+    public function create($toUserId, $chatId,  $message = "", $imgUrl = "", $chatFromUserId = 0, $chatToUserId = 0, $deviceId = "", $listId = 0, $ios_deviceId = "", $stickerId = 0, $stickerImgUrl = "")
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        if (strlen($imgUrl) == 0 && strlen($message) == 0) {
+        if (strlen($imgUrl) == 0 && strlen($message) == 0 && strlen($stickerImgUrl) == 0) {
 
             return $result;
+        }
+
+        if (strlen($stickerImgUrl) > 0) {
+
+            $imgUrl = $stickerImgUrl;
         }
 
         if ($chatId == 0) {
@@ -135,12 +140,14 @@ class msg extends db_connect
         $ip_addr = helper::ip_addr();
         $u_agent = helper::u_agent();
 
-        $stmt = $this->db->prepare("INSERT INTO messages (chatId, fromUserId, toUserId, message, imgUrl, createAt, ip_addr, u_agent) value (:chatId, :fromUserId, :toUserId, :message, :imgUrl, :createAt, :ip_addr, :u_agent)");
+        $stmt = $this->db->prepare("INSERT INTO messages (chatId, fromUserId, toUserId, message, imgUrl, stickerId, stickerImgUrl, createAt, ip_addr, u_agent) value (:chatId, :fromUserId, :toUserId, :message, :imgUrl, :stickerId, :stickerImgUrl, :createAt, :ip_addr, :u_agent)");
         $stmt->bindParam(":chatId", $chatId, PDO::PARAM_INT);
         $stmt->bindParam(":fromUserId", $this->requestFrom, PDO::PARAM_INT);
         $stmt->bindParam(":toUserId", $toUserId, PDO::PARAM_INT);
         $stmt->bindParam(":message", $message, PDO::PARAM_STR);
         $stmt->bindParam(":imgUrl", $imgUrl, PDO::PARAM_STR);
+        $stmt->bindParam(":stickerId", $stickerId, PDO::PARAM_INT);
+        $stmt->bindParam(":stickerImgUrl", $stickerImgUrl, PDO::PARAM_STR);
         $stmt->bindParam(":createAt", $currentTime, PDO::PARAM_INT);
         $stmt->bindParam(":ip_addr", $ip_addr, PDO::PARAM_STR);
         $stmt->bindParam(":u_agent", $u_agent, PDO::PARAM_STR);
@@ -173,6 +180,8 @@ class msg extends db_connect
                             "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'],
                             "message" => htmlspecialchars_decode(stripslashes($message)),
                             "imgUrl" => $imgUrl,
+                            "stickerId" => $stickerId,
+                            "stickerImgUrl" => $stickerImgUrl,
                             "createAt" => $currentTime,
                             "date" => date("Y-m-d H:i:s", $currentTime),
                             "timeAgo" => $time->timeAgo($currentTime),
@@ -197,11 +206,11 @@ class msg extends db_connect
 
                 if ($profileId == $this->getRequestFrom()) {
 
-                    $this->setLastMessageInChat_FromId($chatId, $currentTime, $msgInfo['message'], $msgInfo['imgUrl']);
+                    $this->setLastMessageInChat_FromId($chatId, $currentTime, $msgInfo['message'], $msgInfo['imgUrl'], $msgInfo['stickerImgUrl']);
 
                 } else {
 
-                    $this->setLastMessageInChat_ToId($chatId, $currentTime, $msgInfo['message'], $msgInfo['imgUrl']);
+                    $this->setLastMessageInChat_ToId($chatId, $currentTime, $msgInfo['message'], $msgInfo['imgUrl'], $msgInfo['stickerImgUrl']);
                 }
 
 
@@ -213,11 +222,11 @@ class msg extends db_connect
 
                 if ($profileId == $this->getRequestFrom()) {
 
-                    $this->setLastMessageInChat_FromId($chatId, $currentTime, $msgInfo['message'], $msgInfo['imgUrl']);
+                    $this->setLastMessageInChat_FromId($chatId, $currentTime, $msgInfo['message'], $msgInfo['imgUrl'], $msgInfo['stickerImgUrl']);
 
                 } else {
 
-                    $this->setLastMessageInChat_ToId($chatId, $currentTime, $msgInfo['message'], $msgInfo['imgUrl']);
+                    $this->setLastMessageInChat_ToId($chatId, $currentTime, $msgInfo['message'], $msgInfo['imgUrl'], $msgInfo['stickerImgUrl']);
                 }
             }
         }
@@ -225,16 +234,16 @@ class msg extends db_connect
         return $result;
     }
 
-    public function setLastMessageInChat_FromId($chatId, $time, $message, $image) {
+    public function setLastMessageInChat_FromId($chatId, $time, $message, $image, $sticker = "") {
 
-        if (strlen($message) == 0) {
+        if (strlen($image) > 0 && strlen($message) == 0) {
 
             $message = "Image";
         }
 
-        if (strlen($message) == 0 && strlen($image) == 0) {
+        if (strlen($sticker) > 0) {
 
-            $message = "";
+            $message = "Sticker";
         }
 
         $stmt = $this->db->prepare("UPDATE chats SET message = (:message), messageCreateAt = (:messageCreateAt), fromUserId_lastView = (:fromUserId_lastView) WHERE id = (:chatId)");
@@ -245,16 +254,16 @@ class msg extends db_connect
         $stmt->execute();
     }
 
-    public function setLastMessageInChat_ToId($chatId, $time, $message, $image) {
+    public function setLastMessageInChat_ToId($chatId, $time, $message, $image, $sticker = "") {
 
-        if (strlen($message) == 0) {
+        if (strlen($image) > 0 && strlen($message) == 0) {
 
             $message = "Image";
         }
 
-        if (strlen($message) == 0 && strlen($image) == 0) {
+        if (strlen($sticker) > 0) {
 
-            $message = "";
+            $message = "Sticker";
         }
 
         $stmt = $this->db->prepare("UPDATE chats SET message = (:message), messageCreateAt = (:messageCreateAt), toUserId_lastView = (:toUserId_lastView) WHERE id = (:chatId)");
@@ -456,14 +465,14 @@ class msg extends db_connect
                 $row = $stmt->fetch();
 
                 $result = array("error" => false,
-                    "error_code" => ERROR_SUCCESS,
-                    "id" => $row['id'],
-                    "fromUserId" => $row['fromUserId'],
-                    "toUserId" => $row['toUserId'],
-                    "fromUserId_lastView" => $row['fromUserId_lastView'],
-                    "toUserId_lastView" => $row['toUserId_lastView'],
-                    "createAt" => $row['createAt'],
-                    "removeAt" => $row['removeAt']);
+                                "error_code" => ERROR_SUCCESS,
+                                "id" => $row['id'],
+                                "fromUserId" => $row['fromUserId'],
+                                "toUserId" => $row['toUserId'],
+                                "fromUserId_lastView" => $row['fromUserId_lastView'],
+                                "toUserId_lastView" => $row['toUserId_lastView'],
+                                "createAt" => $row['createAt'],
+                                "removeAt" => $row['removeAt']);
 
                 unset($profileInfo);
             }
@@ -503,7 +512,10 @@ class msg extends db_connect
                                 "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'],
                                 "message" => htmlspecialchars_decode(stripslashes($row['message'])),
                                 "imgUrl" => $row['imgUrl'],
+                                "stickerId" => $row['stickerId'],
+                                "stickerImgUrl" => $row['stickerImgUrl'],
                                 "createAt" => $row['createAt'],
+                                "seenAt" => $row['seenAt'],
                                 "date" => date("Y-m-d H:i:s", $row['createAt']),
                                 "timeAgo" => $time->timeAgo($row['createAt']),
                                 "removeAt" => $row['removeAt']);
@@ -574,7 +586,9 @@ class msg extends db_connect
                                   "createAt" => $row['createAt'],
                                   "date" => date("Y-m-d H:i:s", $row['createAt']),
                                   "timeAgo" => $time->timeAgo($row['createAt']),
-                                  "removeAt" => $row['removeAt']);
+                                  "removeAt" => $row['removeAt'],
+                                  "with_android_fcm_regId" => $profileInfo['gcm_regid'],
+                                  "with_ios_fcm_regId" => $profileInfo['ios_fcm_regid']);
 
                 unset($profileInfo);
 
@@ -755,7 +769,10 @@ class msg extends db_connect
                                  "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'], //$profileInfo['lowPhotoUrl']
                                  "message" => htmlspecialchars_decode(stripslashes($row['message'])),
                                  "imgUrl" => $row['imgUrl'],
+                                 "stickerId" => $row['stickerId'],
+                                 "stickerImgUrl" => $row['stickerImgUrl'],
                                  "createAt" => $row['createAt'],
+                                 "seenAt" => $row['seenAt'],
                                  "date" => date("Y-m-d H:i:s", $row['createAt']),
                                  "timeAgo" => $time->timeAgo($row['createAt']),
                                  "removeAt" => $row['removeAt']);
@@ -783,17 +800,47 @@ class msg extends db_connect
 
                 $this->setChatLastView_FromId($chatId);
 
+                $msg = new msg($this->db);
+                $msg->setSeen($chatId, $chatInfo['toUserId']);
+                unset($msg);
+
+                // GCM_MESSAGE_ONLY_FOR_PERSONAL_USER = 2
+                // GCM_NOTIFY_SEEN= 15
+                // GCM_NOTIFY_TYPING= 16
+                // GCM_NOTIFY_TYPING_START = 27
+                // GCM_NOTIFY_TYPING_END = 28
+
+                $fcm = new fcm($this->db, $chatInfo['toUserId']);
+                $fcm->setData(15, 2, "Seen", 0, $chatId);
+                $fcm->send();
+                unset($fcm);
+
             } else {
 
                 $this->setChatLastView_ToId($chatId);
+
+                $msg = new msg($this->db);
+                $msg->setSeen($chatId, $chatInfo['fromUserId']);
+                unset($msg);
+
+                // GCM_MESSAGE_ONLY_FOR_PERSONAL_USER = 2
+                // GCM_NOTIFY_SEEN= 15
+                // GCM_NOTIFY_TYPING= 16
+                // GCM_NOTIFY_TYPING_START = 27
+                // GCM_NOTIFY_TYPING_END = 28
+
+                $fcm = new fcm($this->db, $chatInfo['fromUserId']);
+                $fcm->setData(15, 2, "Seen", 0, $chatId);
+                $fcm->send();
+                unset($fcm);
             }
         }
 
         $messages = array("error" => false,
                           "error_code" => ERROR_SUCCESS,
-                        "chatId" => $chatId,
-                        "msgId" => $msgId,
-                        "messages" => array());
+                          "chatId" => $chatId,
+                          "msgId" => $msgId,
+                          "messages" => array());
 
         $stmt = $this->db->prepare("SELECT * FROM messages WHERE chatId = (:chatId) AND id > (:msgId) AND removeAt = 0 ORDER BY id ASC");
         $stmt->bindParam(':chatId', $chatId, PDO::PARAM_INT);
@@ -820,7 +867,10 @@ class msg extends db_connect
                                 "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'], //$profileInfo['lowPhotoUrl']
                                 "message" => htmlspecialchars_decode(stripslashes($row['message'])),
                                 "imgUrl" => $row['imgUrl'],
+                                "stickerId" => $row['stickerId'],
+                                "stickerImgUrl" => $row['stickerImgUrl'],
                                 "createAt" => $row['createAt'],
+                                "seenAt" => $row['seenAt'],
                                 "date" => date("Y-m-d H:i:s", $row['createAt']),
                                 "timeAgo" => $time->timeAgo($row['createAt']),
                                 "removeAt" => $row['removeAt']);
@@ -834,6 +884,27 @@ class msg extends db_connect
         }
 
         return $messages;
+    }
+
+    public function setSeen($chatId, $fromUser) {
+
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $currentTime = time();
+
+        $stmt = $this->db->prepare("UPDATE messages SET seenAt = (:seenAt) WHERE chatId = (:chatId) AND fromUserId = (:fromUserId) AND removeAt = 0 AND seenAt = 0");
+        $stmt->bindParam(":seenAt", $currentTime, PDO::PARAM_INT);
+        $stmt->bindParam(":chatId", $chatId, PDO::PARAM_INT);
+        $stmt->bindParam(":fromUserId", $fromUser, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $result = array("error" => false,
+                            "error_code" => ERROR_SUCCESS);
+        }
+
+        return $result;
     }
 
     public function get($chatId, $msgId = 0, $chatFromUserId = 0, $chatToUserId = 0)
@@ -909,6 +980,9 @@ class msg extends db_connect
                                  "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'],
                                  "message" => htmlspecialchars_decode(stripslashes($row['message'])),
                                  "imgUrl" => $row['imgUrl'],
+                                 "stickerId" => $row['stickerId'],
+                                 "stickerImgUrl" => $row['stickerImgUrl'],
+                                 "seenAt" => $row['seenAt'],
                                  "createAt" => $row['createAt'],
                                  "date" => date("Y-m-d H:i:s", $row['createAt']),
                                  "timeAgo" => $time->timeAgo($row['createAt']),

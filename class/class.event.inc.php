@@ -42,9 +42,13 @@ class event extends db_connect
         $stmt->bindParam(":title", $title, PDO::PARAM_STR);
         $stmt->bindParam(":image", $image, PDO::PARAM_STR);
         $stmt->bindParam(":created_at", date("Y-m-d H:i:s"), PDO::PARAM_STR);
-
+		
+		
         if ($stmt->execute()) {
-            $result = array(
+			
+			
+			 
+			            $result = array(
                 "error" => false,
                 "error_code" => ERROR_SUCCESS,
                 "event_id" => $this->getMaxId()
@@ -75,6 +79,16 @@ class event extends db_connect
                 unset($profile);
                 $row['user'] = $profileInfo;
 
+                $eventId = $row['id'];
+                $events_like = new events_like($this->db);
+                $i_likes_count = $events_like->getCount($eventId, $this->getRequestFrom());
+                if($i_likes_count>0) {
+                    $row['i_like_status'] = true;
+                } else {
+                    $row['i_like_status'] = false;
+                }
+                unset($events_like);
+
                 $data[] = $row;
             }
 
@@ -93,6 +107,124 @@ class event extends db_connect
         }
 
         return $result;
+    }
+    public function removeEvent($event_id) {
+
+        $stmt = $this->db->prepare("DELETE FROM events WHERE id = (:event_id)");
+        $stmt->bindParam(":event_id", $event_id, PDO::PARAM_INT);
+        if ($stmt->execute()) {
+            
+            $result = array(
+                "error" => false,
+                "error_code" => ERROR_SUCCESS
+            );
+
+        } else {
+            $result = array(
+                "error" => true,
+                "error_code" => ERROR_UNKNOWN,
+                "error_message" => $stmt->errorInfo()
+            );
+        }
+
+        return $result;
+    }
+
+    public function resetAndGetCommentsCount($event_id) {
+
+        $event_comment = new event_comment($this->db);
+        $event_comment->setRequestFrom($this->requestFrom);
+        $comments_count = $event_comment->getCount($event_id);
+        unset($event_comment);
+
+        $stmt = $this->db->prepare("UPDATE events SET comments_count = (:comments_count) WHERE id = (:event_id) AND event_status = 1");
+        $stmt->bindParam(":event_id", $event_id, PDO::PARAM_INT);
+        $stmt->bindParam(":comments_count", $comments_count, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            return $comments_count;
+
+        } else {
+            return false;
+        }
+    }
+
+    public function increaseEventCommentsCount($event_id) {
+
+        $stmt = $this->db->prepare("UPDATE events SET comments_count = comments_count + 1 WHERE id = (:event_id) AND event_status = 1");
+        $stmt->bindParam(":event_id", $event_id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            return true;
+
+        } else {
+            return false;
+        }
+
+        /*$result = array(
+            "error" => true,
+            "error_code" => ERROR_UNKNOWN,
+            "error_message" => $stmt->errorInfo()
+        );
+        return $result;*/
+    }
+
+    public function decreaseEventCommentsCount($event_id) {
+
+        $stmt = $this->db->prepare("UPDATE events SET comments_count = comments_count - 1 WHERE id = (:event_id) AND event_status = 1");
+        $stmt->bindParam(":event_id", $event_id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            return true;
+
+        } else {
+            return false;
+        }
+    }
+
+    public function resetAndGetLikesCount($event_id) {
+
+        $events_like = new events_like($this->db);
+        $events_like->setRequestFrom($this->requestFrom);
+        $likes_count = $events_like->getCount($event_id);
+        unset($events_like);
+
+        $stmt = $this->db->prepare("UPDATE events SET likes_count = (:likes_count) WHERE id = (:event_id) AND event_status = 1");
+        $stmt->bindParam(":event_id", $event_id, PDO::PARAM_INT);
+        $stmt->bindParam(":likes_count", $likes_count, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            return $likes_count;
+
+        } else {
+            return false;
+        }
+    }
+
+    public function increaseEventLikesCount($event_id)
+    {
+        $stmt = $this->db->prepare("UPDATE events SET likes_count = likes_count + 1 WHERE id = (:event_id) AND event_status = 1");
+        $stmt->bindParam(":event_id", $event_id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            return true;
+
+        } else {
+            return false;
+        }
+    }
+
+    public function decreaseEventLikesCount($event_id)
+    {
+        $stmt = $this->db->prepare("UPDATE events SET likes_count = likes_count - 1 WHERE id = (:event_id) AND event_status = 1");
+        $stmt->bindParam(":event_id", $event_id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            return true;
+
+        } else {
+            return false;
+        }
     }
 
     public function getEvents($topic, $itemId) {
@@ -114,6 +246,16 @@ class event extends db_connect
                 $profileInfo = $profile->getVeryShort();
                 unset($profile);
                 $row['user'] = $profileInfo;
+
+                $eventId = $row['id'];
+                $events_like = new events_like($this->db);
+                $i_likes_count = $events_like->getCount($eventId, $this->getRequestFrom());
+                if($i_likes_count>0) {
+                    $row['i_like_status'] = true;
+                } else {
+                    $row['i_like_status'] = false;
+                }
+                unset($events_like);
 
                 $data[] = $row;
             }

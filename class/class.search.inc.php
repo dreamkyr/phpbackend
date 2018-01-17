@@ -62,8 +62,16 @@ class search extends db_connect
 
         return $number_of_rows = $stmt->fetchColumn() + 1;
     }
+	
+	private function getMaxId()
+    {
+        $stmt = $this->db->prepare("SELECT MAX(id) FROM users");
+        $stmt->execute();
 
-    public function query($queryText = '', $userId = 0, $gender = -1, $online = -1, $ageFrom = 13, $ageTo = 110)
+        return $number_of_rows = $stmt->fetchColumn();
+    }
+
+    public function query($queryText = '', $userId = 0, $gender = -1, $online = -1, $ageFrom = 18, $ageTo = 110, $lat, $lng)
     {
         $originQuery = $queryText;
 
@@ -107,7 +115,11 @@ class search extends db_connect
 
         $queryText = "%".$queryText."%";
 
-        $sql = "SELECT id, regtime FROM users WHERE state = 0 AND (login LIKE '{$queryText}' OR fullname LIKE '{$queryText}' OR email LIKE '{$queryText}' OR country LIKE '{$queryText}') AND id < {$userId}".$genderSql.$onlineSql.$dateSql.$endSql;
+        $sql = "SELECT id, regtime,lat, lng, 3956 * 2 *
+                    ASIN(SQRT( POWER(SIN(($origLat - lat)*pi()/180/2),2)
+                    +COS($origLat*pi()/180 )*COS(lat*pi()/180)
+                    *POWER(SIN(($origLon-lng)*pi()/180/2),2)))
+                    as distance  FROM users WHERE state = 0 AND (login LIKE '{$queryText}' OR fullname LIKE '{$queryText}' OR email LIKE '{$queryText}' OR country LIKE '{$queryText}') AND id < {$userId}".$genderSql.$onlineSql.$dateSql.$endSql;
         $stmt = $this->db->prepare($sql);
 
         if ($stmt->execute()) {
@@ -118,8 +130,10 @@ class search extends db_connect
 
                     $profile = new profile($this->db, $row['id']);
                     $profile->setRequestFrom($this->requestFrom);
+					$profileInfo = $profile->getVeryShort();
+                    $profileInfo['distance'] = round($this->getDistance($lat, $lng, $profileInfo['lat'], $profileInfo['lng']));
 
-                    array_push($users['items'], $profile->get());
+                    array_push($users['items'], $profileInfo);
 
                     $users['itemId'] = $row['id'];
 
@@ -131,9 +145,11 @@ class search extends db_connect
         return $users;
     }
 
-    public function preload($itemId = 0, $gender = -1, $online = -1, $ageFrom = 13, $ageTo = 110)
+    public function preload($itemId = 0, $online = -1, $ageFrom = 18, $ageTo = 110,$lat, $lng)
     {
-        if ($itemId == 0) {
+       
+		
+	if ($itemId == 0) {
 
             $itemId = $this->lastIndex();
             $itemId++;
@@ -157,6 +173,8 @@ class search extends db_connect
             $onlineSql = " AND last_authorize > {$current_time}";
         }
 
+      
+
         $current_year = date("Y");
 
         $fromYear = $current_year - $ageFrom;
@@ -166,7 +184,7 @@ class search extends db_connect
 
         $result = array("error" => false,
                         "error_code" => ERROR_SUCCESS,
-                        "itemCount" => $this->getCount("", $gender, $online),
+                        "itemCount" => $this->getCount("", $gender, $online, $photo),
                         "itemId" => $itemId,
                         "items" => array());
 
@@ -192,6 +210,31 @@ class search extends db_connect
         }
 
         return $result;
+    }
+	
+    public function getDistance($fromLat, $fromLng, $toLat, $toLng) 
+	{
+
+        $latFrom = deg2rad($fromLat);
+        $lonFrom = deg2rad($fromLng);
+        $latTo = deg2rad($toLat);
+        $lonTo = deg2rad($toLng);
+
+        $delta = $lonTo - $lonFrom;
+
+        $alpha = pow(cos($latTo) * sin($delta), 2) + pow(cos($latFrom) * sin($latTo) - sin($latFrom) * cos($latTo) * cos($delta), 2);
+        $beta = sin($latFrom) * sin($latTo) + cos($latFrom) * cos($latTo) * cos($delta);
+
+        $angle = atan2(sqrt($alpha), $beta);
+
+        return ($angle * 6371000) / 1000;
+    }
+
+    public function info($ip_addr)
+    {
+        $info = helper::getContent('http://www.geoplugin.net/json.gp?ip='.$ip_addr);
+
+        return json_decode($info, true);
     }
 
     public function setLanguage($language)

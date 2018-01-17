@@ -4,9 +4,9 @@
  * ifsoft.co.uk engine v1.0
  *
  * http://ifsoft.com.ua, http://ifsoft.co.uk
- * qascript@ifsoft.co.uk
+ * raccoonsquare@gmail.com
  *
- * Copyright 2012-2017 Demyanchuk Dmitry (https://vk.com/dmitry.demyanchuk)
+ * Copyright 2012-2018 Demyanchuk Dmitry (raccoonsquare@gmail.com)
  */
 
 class update extends db_connect
@@ -144,6 +144,62 @@ class update extends db_connect
     public function updateUsersTable()
     {
         $stmt = $this->db->prepare("UPDATE users SET allowShowMyLikes = 0, allowShowMyGifts = 0, allowShowMyFriends = 0, allowShowMyGallery = 0, allowShowMyInfo = 0");
+        $stmt->execute();
+    }
+
+    // For version 3.0
+
+    function addColumnToUsersTable7()
+    {
+        $stmt = $this->db->prepare("ALTER TABLE users ADD referrer INT(10) UNSIGNED DEFAULT 0 after ios_fcm_regid");
+        $stmt->execute();
+    }
+
+    function addColumnToUsersTable8()
+    {
+        $stmt = $this->db->prepare("ALTER TABLE users ADD credits_to_referrer INT(10) UNSIGNED DEFAULT 0 after referrer");
+        $stmt->execute();
+    }
+
+    function addColumnToUsersTable9()
+    {
+        $stmt = $this->db->prepare("ALTER TABLE users ADD purchases_count INT(10) UNSIGNED DEFAULT 0 after credits_to_referrer");
+        $stmt->execute();
+    }
+
+    function addColumnToUsersTable10()
+    {
+        $stmt = $this->db->prepare("ALTER TABLE users ADD referrals_count INT(10) UNSIGNED DEFAULT 0 after purchases_count");
+        $stmt->execute();
+    }
+
+    // For version 3.1
+
+    function addColumnToUsersTable11()
+    {
+        $stmt = $this->db->prepare("ALTER TABLE users ADD pro INT(10) UNSIGNED DEFAULT 0 after ghost_create_at");
+        $stmt->execute();
+    }
+
+    function addColumnToUsersTable12()
+    {
+        $stmt = $this->db->prepare("ALTER TABLE users ADD pro_create_at INT(10) UNSIGNED DEFAULT 0 after pro");
+        $stmt->execute();
+    }
+
+    // For version 3.2
+
+    function addColumnToUsersTable14()
+    {
+        $stmt = $this->db->prepare("ALTER TABLE users ADD free_messages_count INT(11) UNSIGNED DEFAULT 150 after balance");
+        $stmt->execute();
+    }
+
+    // For version 3.4
+
+    function addColumnToMessagesTable1()
+    {
+        $stmt = $this->db->prepare("ALTER TABLE messages ADD seenAt INT(11) UNSIGNED DEFAULT 0 after removeToUserId");
         $stmt->execute();
     }
 }

@@ -30,6 +30,14 @@ class profile extends db_connect
 
         return $number_of_rows = $stmt->fetchColumn();
     }
+	
+	  private function getMaxIdFavorites()
+    {
+        $stmt = $this->db->prepare("SELECT MAX(id) FROM profile_favorites");
+        $stmt->execute();
+
+        return $number_of_rows = $stmt->fetchColumn();
+    }
 
     public function getILikedCount()
     {
@@ -40,6 +48,16 @@ class profile extends db_connect
         return $number_of_rows = $stmt->fetchColumn();
     }
 
+	 public function getIFavoriteCount()
+    {
+        $stmt = $this->db->prepare("SELECT count(*) FROM profile_favorites WHERE fromUserId = (:fromUserId) AND removeAt = 0");
+        $stmt->bindParam(":fromUserId", $this->requestFrom, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $number_of_rows = $stmt->fetchColumn();
+    }
+
+	
     public function get()
     {
         $result = array("error" => true,
@@ -63,6 +81,18 @@ class profile extends db_connect
                     if ($this->is_like_exists($this->requestFrom)) {
 
                         $myLike = true;
+                    }
+                }
+				
+				//test to my favorite
+				
+				$myFavorite = false;
+				
+				   if ($this->getRequestFrom() != 0 && $this->getRequestFrom() != $this->getId()) {
+
+                    if ($this->is_fav_exists($this->requestFrom)) {
+
+                        $myFavorite = true;
                     }
                 }
 
@@ -160,11 +190,12 @@ class profile extends db_connect
                                 "id" => $row['id'],
                                 "gcm_regid" => $row['gcm_regid'],
                                 "ios_fcm_regid" => $row['ios_fcm_regid'],
+                                "android_msg_fcm_regid" => $row['android_msg_fcm_regid'],
+                                "ios_msg_fcm_regid" => $row['ios_msg_fcm_regid'],
                                 "ghost" => $row['ghost'],
                                 "vip" => $row['vip'],
                                 "rating" => $row['rating'],
                                 "state" => $row['state'],
-                                "sex" => $row['sex'],
                                 "year" => $row['bYear'],
                                 "month" => $row['bMonth'],
                                 "day" => $row['bDay'],
@@ -173,9 +204,7 @@ class profile extends db_connect
                                 "username" => $row['login'],
                                 "fullname" => htmlspecialchars_decode(stripslashes($row['fullname'])),
                                 "location" => stripcslashes($row['country']),
-                                "status" => stripcslashes($row['status']),
-                                "fb_page" => stripcslashes($row['fb_page']),
-                                "instagram_page" => stripcslashes($row['my_page']),
+                                "iIntro" => stripcslashes($row['iIntro']),
                                 "verify" => $row['verify'],
                                 "lowPhotoUrl" => $row['lowPhotoUrl'],
                                 "bigPhotoUrl" => $row['bigPhotoUrl'],
@@ -183,15 +212,30 @@ class profile extends db_connect
                                 "normalCoverUrl" => $row['normalCoverUrl'],
                                 "originCoverUrl" => $row['originCoverUrl'],
                                 "coverPosition" => $row['coverPosition'],
-                                "iStatus" => $row['iStatus'],
-                                "iPoliticalViews" => $row['iPoliticalViews'],
-                                "iWorldView" => $row['iWorldView'],
-                                "iPersonalPriority" => $row['iPersonalPriority'],
-                                "iImportantInOthers" => $row['iImportantInOthers'],
-                                "iSmokingViews" => $row['iSmokingViews'],
-                                "iAlcoholViews" => $row['iAlcoholViews'],
-                                "iLooking" => $row['iLooking'],
-                                "iInterested" => $row['iInterested'],
+                                "iAge" => $row['iAge'],
+                                "iHeight" => $row['iHeight'],
+                                "iBodyType" => $row['iBodyType'],
+                                "iEthnicity" => $row['iEthnicity'],
+                                "iZodiac" => $row['iZodiac'],
+                                "iAM" => stripcslashes($row['iAM']),
+                                "iInterestedIN" => stripcslashes($row['iInterestedIN']),
+                                "iOccupation" => stripcslashes($row['iOccupation']),
+								"iLiving"=>$row['iLiving'],
+                                "iEducation" => $row['iEducation'],
+								"iPronouns" => stripcslashes($row['iPronouns']),
+								"iSmoke" => $row['iSmoke'],
+								"iDrink" => $row['iDrink'],
+								"iSexPosition" => $row['iSexPosition'],
+								"iLookingFor" => stripcslashes($row['iLookingFor']),
+								"iInto" => stripcslashes($row['iInto']),
+								"iSexualHealth" => $row['iSexualHealth'],
+								"iMusic" => stripcslashes($row['iMusic']),
+								"iMovies" => stripcslashes($row['iMovies']),
+								"iSports" => stripcslashes($row['iSports']),
+								"iGoingOut" => stripcslashes($row['iGoingOut']),
+								"iPetPeeves" => stripcslashes($row['iPetPeeves']),
+								"iFetishes" => stripcslashes($row['iFetishes']),
+								"iDealBreaker" => stripcslashes($row['iDealBreaker']),
                                 "allowPhotosComments" => $row['allowPhotosComments'],
                                 "allowMessages" => $row['allowMessages'],
                                 "allowShowMyBirthday" => $row['allowShowMyBirthday'],
@@ -200,6 +244,7 @@ class profile extends db_connect
                                 "allowShowMyFriends" => $row['allowShowMyFriends'],
                                 "allowShowMyLikes" => $row['allowShowMyLikes'],
                                 "allowShowMyGifts" => $row['allowShowMyGifts'],
+								"favoritesCount"=>$row['favorites_count'],
                                 "friendsCount" => $row['friends_count'],
                                 "photosCount" => $row['photos_count'],
                                 "likesCount" => $row['likes_count'],
@@ -210,6 +255,7 @@ class profile extends db_connect
                                 "follow" => $follow,
                                 "blocked" => $blocked,
                                 "myLike" => $myLike,
+								"myFavorite"=>$myFavorite,
                                 "createAt" => $row['regtime'],
                                 "createDate" => date("Y-m-d", $row['regtime']),
                                 "lastAuthorize" => $row['last_authorize'],
@@ -268,10 +314,11 @@ class profile extends db_connect
                                 "id" => $row['id'],
                                 "gcm_regid" => $row['gcm_regid'],
                                 "ios_fcm_regid" => $row['ios_fcm_regid'],
+								"android_msg_fcm_regid" => $row['android_msg_fcm_regid'],
+                                "ios_msg_fcm_regid" => $row['ios_msg_fcm_regid'],
                                 "vip" => $row['vip'],
                                 "rating" => $row['rating'],
                                 "state" => $row['state'],
-                                "sex" => $row['sex'],
                                 "year" => $row['bYear'],
                                 "month" => $row['bMonth'],
                                 "day" => $row['bDay'],
@@ -280,9 +327,7 @@ class profile extends db_connect
                                 "username" => $row['login'],
                                 "fullname" => htmlspecialchars_decode(stripslashes($row['fullname'])),
                                 "location" => stripcslashes($row['country']),
-                                "status" => stripcslashes($row['status']),
-                                "fb_page" => stripcslashes($row['fb_page']),
-                                "instagram_page" => stripcslashes($row['my_page']),
+                                "iIntro" => stripcslashes($row['iIntro']),
                                 "verify" => $row['verify'],
                                 "friendsCount" => $row['friends_count'],
                                 "photosCount" => $row['photos_count'],
@@ -336,6 +381,20 @@ class profile extends db_connect
                 $friend = false;
                 $follow = false;
                 $blocked = false;
+				$myFavorite = false;
+				
+				 if ($this->requestFrom != 0) {
+
+                    $blacklist = new blacklist($this->db);
+                    $blacklist->setRequestFrom($this->getId());
+
+                    if ($blacklist->isExists($this->getRequestFrom())) {
+
+                        $inBlackList = true;
+                    }
+
+                    unset($blacklist);
+                }
 
                 $current_time = time();
 
@@ -351,10 +410,11 @@ class profile extends db_connect
                                 "id" => $row['id'],
                                 "gcm_regid" => $row['gcm_regid'],
                                 "ios_fcm_regid" => $row['ios_fcm_regid'],
+								"android_msg_fcm_regid" => $row['android_msg_fcm_regid'],
+                                "ios_msg_fcm_regid" => $row['ios_msg_fcm_regid'],
                                 "vip" => $row['vip'],
                                 "rating" => $row['rating'],
                                 "state" => $row['state'],
-                                "sex" => $row['sex'],
                                 "year" => $row['bYear'],
                                 "month" => $row['bMonth'],
                                 "day" => $row['bDay'],
@@ -363,24 +423,38 @@ class profile extends db_connect
                                 "username" => $row['login'],
                                 "fullname" => htmlspecialchars_decode(stripslashes($row['fullname'])),
                                 "location" => stripcslashes($row['country']),
-                                "status" => stripcslashes($row['status']),
+                                "iIntro" => stripcslashes($row['iIntro']),
                                 "verify" => $row['verify'],
-                                "fb_page" => stripcslashes($row['fb_page']),
-                                "instagram_page" => stripcslashes($row['my_page']),
                                 "lowPhotoUrl" => $row['lowPhotoUrl'],
                                 "bigPhotoUrl" => $row['bigPhotoUrl'],
                                 "normalPhotoUrl" => $row['normalPhotoUrl'],
                                 "normalCoverUrl" => $row['normalCoverUrl'],
                                 "originCoverUrl" => $row['originCoverUrl'],
-                                "iStatus" => $row['iStatus'],
-                                "iPoliticalViews" => $row['iPoliticalViews'],
-                                "iWorldView" => $row['iWorldView'],
-                                "iPersonalPriority" => $row['iPersonalPriority'],
-                                "iImportantInOthers" => $row['iImportantInOthers'],
-                                "iSmokingViews" => $row['iSmokingViews'],
-                                "iAlcoholViews" => $row['iAlcoholViews'],
-                                "iLooking" => $row['iLooking'],
-                                "iInterested" => $row['iInterested'],
+                                "iAge" => $row['iAge'],
+                                "iHeight" => $row['iHeight'],
+                                "iBodyType" => $row['iBodyType'],
+                                "iEthnicity" => $row['iEthnicity'],
+                                "iZodiac" => $row['iZodiac'],
+								"iAM" => stripcslashes($row['iAM']),
+                                "iInterestedIN" => stripcslashes($row['iInterestedIN']),
+                                "iOccupation" => stripcslashes($row['iOccupation']),
+								"iLiving"=>$row['iLiving'],
+                                "iEducation" => $row['iEducation'],
+								"iPronouns" => stripcslashes($row['iPronouns']),
+								"iSmoke" => $row['iSmoke'],
+								"iDrink" => $row['iDrink'],
+								"iSexPosition" => $row['iSexPosition'],
+								"iLookingFor" => stripcslashes($row['iLookingFor']),
+								"iInto" => stripcslashes($row['iInto']),
+								"iSexualHealth" => $row['iSexualHealth'],
+								"iMusic" => stripcslashes($row['iMusic']),
+								"iMovies" => stripcslashes($row['iMovies']),
+								"iSports" => stripcslashes($row['iSports']),
+								"iGoingOut" => stripcslashes($row['iGoingOut']),
+								"iPetPeeves" => stripcslashes($row['iPetPeeves']),
+								"iFetishes" => stripcslashes($row['iFetishes']),
+								"iDealBreaker" => stripcslashes($row['iDealBreaker']),
+								"favoritesCount"=>$row['favorites_count'],
                                 "friendsCount" => $row['friends_count'],
                                 "photosCount" => $row['photos_count'],
                                 "likesCount" => $row['likes_count'],
@@ -404,13 +478,186 @@ class profile extends db_connect
                                 "inBlackList" => $inBlackList,
                                 "follow" => $follow,
                                 "blocked" => $blocked,
-                                "myLike" => $myLike);
+                                "myLike" => $myLike,
+								"myFavorite" => $myFavorite);
             }
         }
 
         return $result;
     }
 
+    
+
+	public function removeFavorite($friendId)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $my_profile = new profile($this->db, $this->profileId);
+
+        if ($my_profile->is_fav_exists($friendId)) {
+
+            $currentTime = time();
+
+            $stmt = $this->db->prepare("UPDATE profile_favorites SET removeAt = (:removeAt) WHERE toUserId = (:toUserId) AND fromUserId = (:fromUserId) AND removeAt = 0");
+            $stmt->bindParam(":toUserId", $this->profileId, PDO::PARAM_INT);
+            $stmt->bindParam(":fromUserId", $friendId, PDO::PARAM_INT);
+            $stmt->bindParam(":removeAt", $currentTime, PDO::PARAM_INT);
+
+            if ($stmt->execute()) {
+
+                $result = array("error" => false,
+                                "error_code" => ERROR_SUCCESS);
+
+                $stmt2 = $this->db->prepare("UPDATE profile_favorites SET removeAt = (:removeAt) WHERE toUserId = (:toUserId) AND fromUserId = (:fromUserId) AND removeAt = 0");
+                $stmt2->bindParam(":toUserId", $this->profileId, PDO::PARAM_INT);
+                $stmt2->bindParam(":fromUserId", $friendId, PDO::PARAM_INT);
+                $stmt2->bindParam(":removeAt", $currentTime, PDO::PARAM_INT);
+                $stmt2->execute();
+
+                $account = new account($this->db, $this->profileId);
+                $account->updateCounters();
+                unset($account);
+
+                $account = new account($this->db, $friendId);
+                $account->updateCounters();
+            }
+        }
+
+        return $result;
+    }
+
+	public function favorite($fromUserId)
+	{
+		 $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $account = new account($this->db, $fromUserId);
+        $account->setLastActive();
+        unset($account);
+
+        if ($this->is_fav_exists($fromUserId)) {
+
+            $removeAt = time();
+
+            $stmt = $this->db->prepare("UPDATE profile_favorites SET removeAt = (:removeAt) WHERE toUserId = (:toUserId) AND fromUserId = (:fromUserId) AND removeAt = 0");
+            $stmt->bindParam(":fromUserId", $fromUserId, PDO::PARAM_INT);
+            $stmt->bindParam(":toUserId", $toUserId, PDO::PARAM_INT);
+            $stmt->bindParam(":removeAt", $removeAt, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $myfavorite = false;
+
+        } else {
+
+            $createAt = time();
+            $ip_addr = helper::ip_addr();
+
+            $stmt = $this->db->prepare("INSERT INTO profile_favorites (toUserId, fromUserId, createAt, ip_addr) value (:toUserId, :fromUserId, :createAt, :ip_addr)");
+            $stmt->bindParam(":toUserId", $this->id, PDO::PARAM_INT);
+            $stmt->bindParam(":fromUserId", $fromUserId, PDO::PARAM_INT);
+            $stmt->bindParam(":createAt", $createAt, PDO::PARAM_INT);
+            $stmt->bindParam(":ip_addr", $ip_addr, PDO::PARAM_STR);
+            $stmt->execute();
+
+            $myfavorite = true;
+
+        }
+
+        $account = new account($this->db, $this->id);
+        $account->updateCounters();
+        $FavoritesCount = $account->getFavoritesCount();
+        unset($account);
+
+        $result = array("error" => false,
+                        "error_code" => ERROR_SUCCESS,
+                        "FavoritesCount" => $FavoritesCount,
+                        "myfavorite" => $myfavorite);
+
+        return $result;
+	}
+	
+	public function getIFavorite($itemId = 0)
+    {
+		
+		
+        if ($itemId == 0) {
+            $itemId = $this->getMaxIdFavorites();
+            $itemId++;
+        }
+
+        $result = array("error" => false,
+                        "error_code" => ERROR_SUCCESS,
+                        "itemId" => $itemId,
+                        "items" => array());
+
+        $stmt = $this->db->prepare("SELECT * FROM profile_favorites WHERE fromUserId = (:fromUserId) AND id < (:itemId) AND removeAt = 0 ORDER BY id DESC LIMIT 20");
+        $stmt->bindParam(':fromUserId', $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(':itemId', $itemId, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            if ($stmt->rowCount() > 0) {
+
+                while ($row = $stmt->fetch()) {
+
+                    $profile = new profile($this->db, $row['toUserId']);
+                    $profile->setRequestFrom($this->requestFrom);
+                    $profileInfo = $profile->get();
+                    unset($profile);
+
+                    array_push($result['items'], $profileInfo);
+
+                    $result['itemId'] = $row['id'];
+
+                    unset($profile);
+                }
+            }
+        }
+
+        return $result;
+    }
+	
+	public function getFavoriteMe($itemId = 0){
+		
+		if ($itemId == 0) {
+
+            $itemId = $this->getMaxIdFavorites();
+            $itemId++;
+        }
+
+        $fans = array("error" => false,
+                      "error_code" => ERROR_SUCCESS,
+                      "itemId" => $itemId,
+                      "items" => array());
+
+        $stmt = $this->db->prepare("SELECT * FROM profile_favorites WHERE toUserId = (:toUserId) AND id < (:itemId) AND removeAt = 0 ORDER BY id DESC LIMIT 20");
+        $stmt->bindParam(':toUserId', $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(':itemId', $itemId, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            if ($stmt->rowCount() > 0) {
+
+                while ($row = $stmt->fetch()) {
+
+                    $profile = new profile($this->db, $row['fromUserId']);
+                    $profile->setRequestFrom($this->requestFrom);
+                    $profileInfo = $profile->get();
+                    unset($profile);
+
+                    array_push($fans['items'], $profileInfo);
+
+                    $fans['itemId'] = $row['id'];
+
+                    unset($profile);
+                }
+            }
+        }
+
+        return $fans;
+	}
+	
     public function like($fromUserId)
     {
         $result = array("error" => true,
@@ -581,10 +828,9 @@ class profile extends db_connect
         $todayStartSeconds = $today;
         $todayEndSeconds = $tomorrow;
 
-        $stmt = $this->db->prepare("SELECT count(*) FROM profile_likes WHERE toUserId = (:toUserId) AND removeAt = 0 AND createAt > (:todayStartSeconds) AND createAt < (:todayEndSeconds)");
-        $stmt->bindParam(":toUserId", $userId, PDO::PARAM_INT);
-        $stmt->bindParam(":todayStartSeconds", $todayStartSeconds, PDO::PARAM_INT);
-        $stmt->bindParam(":todayEndSeconds", $todayEndSeconds, PDO::PARAM_INT);
+        $stmt = $this->db->prepare("SELECT likes_count FROM users WHERE id = (:userId) AND removeAt = 0");
+        $stmt->bindParam(":id", $userId, PDO::PARAM_INT);
+       
 
         $stmt->execute();
 
@@ -599,37 +845,23 @@ class profile extends db_connect
         $todayStartSeconds = $today;
         $todayEndSeconds = $tomorrow;
 
-        $stmt = $this->db->prepare("SELECT DISTINCT toUserId FROM profile_likes WHERE removeAt = 0 AND createAt > (:todayStartSeconds) AND createAt < (:todayEndSeconds) ORDER BY toUserId ASC");
-        $stmt->bindParam(":todayStartSeconds", $todayStartSeconds, PDO::PARAM_INT);
-        $stmt->bindParam(":todayEndSeconds", $todayEndSeconds, PDO::PARAM_INT);
+        $stmt = $this->db->prepare(" SELECT DISTINCT id FROM users  ORDER BY likes_count DESC");
+        
+       
 
         $likedCounts = [];
         if ($stmt->execute()) {
             if ($stmt->rowCount() > 0) {
                 while ($row = $stmt->fetch()) {
                     $item = array(
-                        'user_id' => $row['toUserId'],
-                        'count'   => $this->getTodayUserBeLikedCount($row['toUserId'])
+                        'user_id' => $row['id']
                     );
                     $likedCounts[] = $item;
                 }
             }
         }
-
-        if(count($likedCounts)>1) {
-            for($i=0; $i<count($likedCounts)-1; $i++) {
-                $item = $likedCounts[$i];
-                for($j = 1; $j<count($likedCounts); $j++ ) {
-                    $jtem = $likedCounts[$j];
-                    if($item['count'] < $jtem['count']) {
-                        $likedCounts[$i] = $jtem;
-                        $likedCounts[$j] = $item;
-                    }
-                }
-            }
-        }
-
-        if(count($likedCounts)>100) {
+        
+        if(count($likedCounts) > 100) {
             $likedCounts = array_slice($likedCounts, 0, 99);
         }
 
@@ -641,16 +873,14 @@ class profile extends db_connect
             $profile = new profile($this->db, $likedCount['user_id']);
             $profile->setRequestFrom($this->requestFrom);
             $profileInfo = $profile->getVeryShort();
-
             array_push($result['items'], $profileInfo);
-
             $result['itemId'] = $row['id'];
-
             unset($profile);
         }
 
         return $result;
     }
+
 
     private function is_like_exists($fromUserId)
     {
@@ -667,6 +897,20 @@ class profile extends db_connect
         return false;
     }
 
+	  private function is_fav_exists($fromUserId)
+    {
+        $stmt = $this->db->prepare("SELECT id FROM profile_favorites WHERE fromUserId = (:fromUserId) AND toUserId = (:toUserId) AND removeAt = 0 LIMIT 1");
+        $stmt->bindParam(":fromUserId", $fromUserId, PDO::PARAM_INT);
+        $stmt->bindParam(":toUserId", $this->id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        if ($stmt->rowCount() > 0) {
+
+            return true;
+        }
+
+        return false;
+    }
     public function addFollower($follower_id)
     {
         $result = array("error" => true,

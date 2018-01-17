@@ -22,7 +22,7 @@ class account extends db_connect
         $this->setId($accountId);
     }
 
-    public function signup($username, $fullname, $password, $email, $sex, $year, $month, $day, $language = '')
+    public function signup($username, $fullname, $password, $email, $year, $month, $day, $age, $language = '')
     {
 
         $result = array("error" => true);
@@ -89,10 +89,6 @@ class account extends db_connect
             return $result;
         }
 
-        if ($sex < 0 || $sex > 1) {
-
-            $sex = 0;
-        }
 
         $salt = helper::generateSalt(3);
         $passw_hash = md5(md5($password).$salt);
@@ -103,7 +99,7 @@ class account extends db_connect
         $accountState = ACCOUNT_STATE_ENABLED;
         $default_user_balance = DEFAULT_BALANCE;
 
-        $stmt = $this->db->prepare("INSERT INTO users (state, login, fullname, passw, email, salt, balance, bYear, bMonth, bDay, sex, regtime, ip_addr) value (:state, :username, :fullname, :password, :email, :salt, :balance, :bYear, :bMonth, :bDay, :sex, :createAt, :ip_addr)");
+        $stmt = $this->db->prepare("INSERT INTO users (state, login, fullname, passw, email, salt, balance, bYear, bMonth, bDay,iAge, regtime, ip_addr) value (:state, :username, :fullname, :password, :email, :salt, :balance, :bYear, :bMonth, :bDay, :iAge, :createAt, :ip_addr)");
         $stmt->bindParam(":state", $accountState, PDO::PARAM_INT);
         $stmt->bindParam(":username", $username, PDO::PARAM_STR);
         $stmt->bindParam(":fullname", $fullname, PDO::PARAM_STR);
@@ -114,7 +110,7 @@ class account extends db_connect
         $stmt->bindParam(":bYear", $year, PDO::PARAM_INT);
         $stmt->bindParam(":bMonth", $month, PDO::PARAM_INT);
         $stmt->bindParam(":bDay", $day, PDO::PARAM_INT);
-        $stmt->bindParam(":sex", $sex, PDO::PARAM_INT);
+		$stmt->bindParam(":iAge", $age, PDO::PARAM_INT);
         $stmt->bindParam(":createAt", $currentTime, PDO::PARAM_INT);
         $stmt->bindParam(":ip_addr", $ip_addr, PDO::PARAM_INT);
 
@@ -532,16 +528,18 @@ class account extends db_connect
         $giftsCount = $this->getGiftsCount();
         $likesCount = $this->getLikesCount();
         $friendsCount = $this->getFriendsCount();
+		$favoritesCount = $this->getFavoritesCount();
 
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET photos_count = (:photos_count), gifts_count = (:gifts_count), likes_count = (:likes_count), friends_count = (:friends_count) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET photos_count = (:photos_count), gifts_count = (:gifts_count), likes_count = (:likes_count), friends_count = (:friends_count),favorites_count = (:favorites_count) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
         $stmt->bindParam(":photos_count", $photosCount, PDO::PARAM_INT);
         $stmt->bindParam(":gifts_count", $giftsCount, PDO::PARAM_INT);
         $stmt->bindParam(":likes_count", $likesCount, PDO::PARAM_INT);
         $stmt->bindParam(":friends_count", $friendsCount, PDO::PARAM_INT);
+		$stmt->bindParam(":favorites_count", $favoritesCount, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
@@ -814,6 +812,33 @@ class account extends db_connect
         return $result;
     }
 
+	 public function getFavoritesCount()
+    {
+        $stmt = $this->db->prepare("SELECT count(*) FROM profile_favorites WHERE toUserId = (:toUserId) AND removeAt = 0");
+        $stmt->bindParam(":toUserId", $this->id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $number_of_rows = $stmt->fetchColumn();
+    }
+	
+	   public function setFavoritesCount($favoritesCount)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET favorites_count = (:favorites_count) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":favorites_count", $favoritesCount, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+	
     public function getLikesCount()
     {
         $stmt = $this->db->prepare("SELECT count(*) FROM profile_likes WHERE toUserId = (:toUserId) AND removeAt = 0");
@@ -868,14 +893,14 @@ class account extends db_connect
         return $result;
     }
 
-    public function setStatus($status)
+    public function setiIntro($intro)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET status = (:status) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iIntro = (:iIntro) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":status", $status, PDO::PARAM_STR);
+        $stmt->bindParam(":iIntro", $intro, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -886,20 +911,22 @@ class account extends db_connect
         return $result;
     }
 
-    public function getStatus()
+    public function getiIntro()
     {
-        $stmt = $this->db->prepare("SELECT status FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iIntro FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['status'];
+            return $row['iIntro'];
         }
 
         return '';
-    }
+    
+	}
+	
 
     public function restorePointCreate($email, $clientId)
     {
@@ -1049,6 +1076,130 @@ class account extends db_connect
 
         return 0;
     }
+	    public function set_ios_fcm_regId($ios_gcm_regid)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET ios_fcm_regid = (:ios_fcm_regid) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":ios_fcm_regid", $ios_gcm_regid, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_ios_fcm_regId()
+    {
+        $stmt = $this->db->prepare("SELECT ios_fcm_regid FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['ios_fcm_regid'];
+        }
+
+        return 0;
+    }
+	public function set_ios_msg_fcm_regId($ios_msg_fcm_regid)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET ios_msg_fcm_regid = (:ios_msg_fcm_regid) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":ios_msg_fcm_regid", $ios_msg_fcm_regid, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_ios_msg_fcm_regId()
+    {
+        $stmt = $this->db->prepare("SELECT ios_msg_fcm_regid FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['ios_msg_fcm_regid'];
+        }
+
+        return 0;
+    }
+
+    public function set_android_msg_fcm_regId($android_msg_fcm_regid)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET android_msg_fcm_regid = (:android_msg_fcm_regid) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":android_msg_fcm_regid", $android_msg_fcm_regid, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_android_msg_fcm_regId()
+    {
+        $stmt = $this->db->prepare("SELECT android_msg_fcm_regid FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['android_msg_fcm_regid'];
+        }
+
+        return 0;
+    }
+
+    public function get_fcm_regIds()
+    {
+        $result = array("error" => false,
+                        "error_code" => ERROR_SUCCESS,
+                        "gcm_regid" => "",
+                        "ios_fcm_regid" => "");
+
+        $stmt = $this->db->prepare("SELECT gcm_regid, ios_fcm_regid, android_msg_fcm_regid, ios_msg_fcm_regid FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            $result = array("error" => false,
+                            "error_code" => ERROR_SUCCESS,
+                            "gcm_regid" => $row['gcm_regid'],
+                            "ios_fcm_regid" => $row['ios_fcm_regid'],
+                            "android_msg_fcm_regid" => $row['android_msg_fcm_regid'],
+                            "ios_msg_fcm_regid" => $row['ios_msg_fcm_regid']);
+
+            return $result;
+        }
+
+        return $result;
+    }
 
     public function deactivation($password)
     {
@@ -1077,7 +1228,7 @@ class account extends db_connect
 
             if ($stmt2->rowCount() > 0) {
 
-                $this->setState(ACCOUNT_STATE_DISABLED);
+                $this->setState(ACCOUNT_STATE_DEACTIVATED);
 
                 $result = array("error" => false,
                                 "error_code" => ERROR_SUCCESS);
@@ -1383,15 +1534,16 @@ class account extends db_connect
         return 0;
     }
 
-    public function setPrivacySettings($allowShowMyLikes, $allowShowMyGifts, $allowShowMyFriends, $allowShowMyGallery, $allowShowMyInfo)
+    public function setPrivacySettings($allowShowMyLikes, $allowShowMyGifts, $allowShowMyFriends, $allowShowMyGallery, $allowShowMyInfo, $allowShowMyDistance)
     {
-        $stmt = $this->db->prepare("UPDATE users SET allowShowMyLikes = (:allowShowMyLikes), allowShowMyGifts = (:allowShowMyGifts), allowShowMyFriends = (:allowShowMyFriends), allowShowMyGallery = (:allowShowMyGallery), allowShowMyInfo = (:allowShowMyInfo)  WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET allowShowMyLikes = (:allowShowMyLikes), allowShowMyGifts = (:allowShowMyGifts), allowShowMyFriends = (:allowShowMyFriends), allowShowMyGallery = (:allowShowMyGallery), allowShowMyInfo = (:allowShowMyInfo), allowShowMyDistance = (:allowShowMyDistance)  WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyLikes", $allowShowMyLikes, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyGifts", $allowShowMyGifts, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyFriends", $allowShowMyFriends, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyGallery", $allowShowMyGallery, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyInfo", $allowShowMyInfo, PDO::PARAM_INT);
+        $stmt->bindParam(":allowShowMyDistance", $allowShowMyDistance, PDO::PARAM_INT);
         $stmt->execute();
     }
 
@@ -1400,7 +1552,7 @@ class account extends db_connect
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("SELECT allowShowMyLikes, allowShowMyGifts, allowShowMyFriends, allowShowMyGallery, allowShowMyInfo FROM users WHERE id = (:id)");
+        $stmt = $this->db->prepare("SELECT allowShowMyLikes, allowShowMyGifts, allowShowMyFriends, allowShowMyGallery, allowShowMyInfo, allowShowMyDistance FROM users WHERE id = (:id)");
         $stmt->bindParam(":id", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
@@ -1413,7 +1565,8 @@ class account extends db_connect
                             "allowShowMyGifts" => $row['allowShowMyGifts'],
                             "allowShowMyFriends" => $row['allowShowMyFriends'],
                             "allowShowMyGallery" => $row['allowShowMyGallery'],
-                            "allowShowMyInfo" => $row['allowShowMyInfo']);
+                            "allowShowMyInfo" => $row['allowShowMyInfo'],
+                            "allowShowMyDistance" => $row['allowShowMyDistance']);
         }
 
         return $result;
@@ -1519,6 +1672,9 @@ class account extends db_connect
         return $time;
     }
 
+	
+
+	
     public function get()
     {
         $result = array("error" => true,
@@ -1539,12 +1695,12 @@ class account extends db_connect
 
                 // Get new messages count
 
-                // $msg = new messages($this->db);
-                // $msg->setRequestFrom($this->id);
+                 $msg = new messages($this->db);
+                 $msg->setRequestFrom($this->id);
 
-                // $messages_count = $msg->getNewMessagesCount();
+                $messages_count = $msg->getNewMessagesCount();
 
-                // unset($msg);
+                unset($msg);
 
                 // Get new notifications count
 
@@ -1591,12 +1747,13 @@ class account extends db_connect
                                 "id" => $row['id'],
                                 "gcm_regid" => $row['gcm_regid'],
                                 "ios_fcm_regid" => $row['ios_fcm_regid'],
+								"android_msg_fcm_regid" => $row['android_msg_fcm_regid'],
+                                "ios_msg_fcm_regid" => $row['ios_msg_fcm_regid'],
                                 "admob" => $row['admob'],
                                 "ghost" => $row['ghost'],
                                 "vip" => $row['vip'],
                                 "gcm" => $row['gcm'],
                                 "balance" => $row['balance'],
-                                "fb_id" => $row['fb_id'],
                                 "rating" => $row['rating'],
                                 "state" => $row['state'],
                                 "regtime" => $row['regtime'],
@@ -1604,13 +1761,10 @@ class account extends db_connect
                                 "username" => $row['login'],
                                 "fullname" => stripcslashes($row['fullname']),
                                 "location" => stripcslashes($row['country']),
-                                "status" => stripcslashes($row['status']),
-                                "fb_page" => stripcslashes($row['fb_page']),
-                                "instagram_page" => stripcslashes($row['my_page']),
+                                "iIntro" => stripcslashes($row['iIntro']),
                                 "verify" => $row['verify'],
                                 "email" => $row['email'],
                                 "emailVerify" => $row['emailVerify'],
-                                "sex" => $row['sex'],
                                 "year" => $row['bYear'],
                                 "month" => $row['bMonth'],
                                 "day" => $row['bDay'],
@@ -1623,15 +1777,30 @@ class account extends db_connect
                                 "membership" => $row['membership'],
                                 "coverUrl" => $row['normalCoverUrl'],
                                 "originCoverUrl" => $row['originCoverUrl'],
-                                "iStatus" => $row['iStatus'],
-                                "iPoliticalViews" => $row['iPoliticalViews'],
-                                "iWorldView" => $row['iWorldView'],
-                                "iPersonalPriority" => $row['iPersonalPriority'],
-                                "iImportantInOthers" => $row['iImportantInOthers'],
-                                "iSmokingViews" => $row['iSmokingViews'],
-                                "iAlcoholViews" => $row['iAlcoholViews'],
-                                "iLooking" => $row['iLooking'],
-                                "iInterested" => $row['iInterested'],
+                                "iAge" => $row['iAge'],
+                                "iHeight" => $row['iHeight'],
+                                "iBodyType" => $row['iBodyType'],
+                                "iEthnicity" => $row['iEthnicity'],
+                                "iZodiac" => $row['iZodiac'],
+                                "iAM" => stripcslashes($row['iAM']),
+                                "iInterestedIN" => stripcslashes($row['iInterestedIN']),
+                                "iOccupation" => stripcslashes($row['iOccupation']),
+								"iLiving"=>$row['iLiving'],
+                                "iEducation" => $row['iEducation'],
+								"iPronouns" => stripcslashes($row['iPronouns']),
+								"iSmoke" => $row['iSmoke'],
+								"iDrink" => $row['iDrink'],
+								"iSexPosition" => $row['iSexPosition'],
+								"iLookingFor" => stripcslashes($row['iLookingFor']),
+								"iInto" => stripcslashes($row['iInto']),
+								"iSexualHealth" => $row['iSexualHealth'],
+								"iMusic" => stripcslashes($row['iMusic']),
+								"iMovies" => stripcslashes($row['iMovies']),
+								"iSports" => stripcslashes($row['iSports']),
+								"iGoingOut" => stripcslashes($row['iGoingOut']),
+								"iPetPeeves" => stripcslashes($row['iPetPeeves']),
+								"iFetishes" => stripcslashes($row['iFetishes']),
+								"iDealBreaker" => stripcslashes($row['iDealBreaker']),
                                 "allowShowMyInfo" => $row['allowShowMyInfo'],
                                 "allowShowMyGallery" => $row['allowShowMyGallery'],
                                 "allowShowMyFriends" => $row['allowShowMyFriends'],
@@ -1650,6 +1819,7 @@ class account extends db_connect
                                 "lastAuthorizeDate" => date("Y-m-d H:i:s", $row['last_authorize']),
                                 "lastAuthorizeTimeAgo" => $time->timeAgo($row['last_authorize']),
                                 "online" => $online,
+								"favoritesCount"=>$row['favorites_count'],
                                 "friendsCount" => $row['friends_count'],
                                 "photosCount" => $row['photos_count'],
                                 "likesCount" => $row['likes_count'],
@@ -1657,7 +1827,7 @@ class account extends db_connect
                                 "notificationsCount" => $notifications_count,
                                 "guestsCount" => $guests_count,
                                 "newFriendsCount" => $friends_count,
-                                "messagesCount" => $messages_count);
+								"messagesCount" => $messages_count);
 
                 unset($profile);
                 unset($time);
@@ -1778,14 +1948,14 @@ class account extends db_connect
         $stmt->execute();
     }
 
-    public function set_iStatus($status)
+    public function set_iAge($age)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET iStatus = (:iStatus) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iAge = (:iAge) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":iStatus", $status, PDO::PARAM_STR);
+        $stmt->bindParam(":iAge", $age, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -1796,29 +1966,29 @@ class account extends db_connect
         return $result;
     }
 
-    public function get_iStatus()
+    public function get_iAge()
     {
-        $stmt = $this->db->prepare("SELECT iStatus FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iAge FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iStatus'];
+            return $row['iAge'];
         }
 
         return 0;
     }
 
-    public function set_iPoliticalViews($politicalViews)
+    public function set_iHeight($height)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET iPoliticalViews = (:iPoliticalViews) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iHeight = (:iHeight) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":iPoliticalViews", $politicalViews, PDO::PARAM_STR);
+        $stmt->bindParam(":iHeight", $height, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -1829,29 +1999,29 @@ class account extends db_connect
         return $result;
     }
 
-    public function get_iPoliticalViews()
+    public function get_iHeight()
     {
-        $stmt = $this->db->prepare("SELECT iPoliticalViews FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iHeight FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iPoliticalViews'];
+            return $row['iHeight'];
         }
 
         return 0;
     }
 
-    public function set_iWorldView($worldView)
+    public function set_iBodyType($bodytype)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET iWorldView = (:iWorldView) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iBodyType = (:iBodyType) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":iWorldView", $worldView, PDO::PARAM_STR);
+        $stmt->bindParam(":iBodyType", $bodytype, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -1862,29 +2032,29 @@ class account extends db_connect
         return $result;
     }
 
-    public function get_iWorldView()
+    public function get_iBodyType()
     {
-        $stmt = $this->db->prepare("SELECT iWorldView FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iBodyType FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iWorldView'];
+            return $row['iBodyType'];
         }
 
         return 0;
     }
 
-    public function set_iPersonalPriority($personalPriority)
+    public function set_iEthnicity($ethnicity)
 {
     $result = array("error" => true,
                     "error_code" => ERROR_UNKNOWN);
 
-    $stmt = $this->db->prepare("UPDATE users SET iPersonalPriority = (:iPersonalPriority) WHERE id = (:accountId)");
+    $stmt = $this->db->prepare("UPDATE users SET iEthnicity = (:iEthnicity) WHERE id = (:accountId)");
     $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-    $stmt->bindParam(":iPersonalPriority", $personalPriority, PDO::PARAM_STR);
+    $stmt->bindParam(":iEthnicity", $ethnicity, PDO::PARAM_STR);
 
     if ($stmt->execute()) {
 
@@ -1895,29 +2065,29 @@ class account extends db_connect
     return $result;
 }
 
-    public function get_iPersonalPriority()
+    public function get_iEthnicity()
     {
-        $stmt = $this->db->prepare("SELECT iPersonalPriority FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iEthnicity FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iPersonalPriority'];
+            return $row['iEthnicity'];
         }
 
         return 0;
     }
 
-    public function set_iImportantInOthers($importantInOthers)
+    public function set_iZodiac($zodiac)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET iImportantInOthers = (:iImportantInOthers) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iZodiac = (:iZodiac) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":iImportantInOthers", $importantInOthers, PDO::PARAM_STR);
+        $stmt->bindParam(":iZodiac", $zodiac, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -1928,29 +2098,30 @@ class account extends db_connect
         return $result;
     }
 
-    public function get_iImportantInOthers()
+    public function get_iZodiac()
     {
-        $stmt = $this->db->prepare("SELECT iImportantInOthers FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iZodiac FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iImportantInOthers'];
+            return $row['iZodiac'];
         }
 
         return 0;
     }
-
-    public function set_iSmokingViews($smokingViews)
+	
+	
+    public function set_iAM($iam)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET iSmokingViews = (:iSmokingViews) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iAM = (:iAM) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":iSmokingViews", $smokingViews, PDO::PARAM_STR);
+        $stmt->bindParam(":iAM", $iam, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -1961,29 +2132,29 @@ class account extends db_connect
         return $result;
     }
 
-    public function get_iSmokingViews()
+    public function get_iAM()
     {
-        $stmt = $this->db->prepare("SELECT iSmokingViews FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iAM FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iSmokingViews'];
+            return $row['iAM'];
         }
 
-        return 0;
+        return '';
     }
 
-    public function set_iAlcoholViews($alcoholViews)
+    public function set_iInterestedIN($interested)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET iAlcoholViews = (:iAlcoholViews) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iInterestedIN = (:iInterestedIN) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":iAlcoholViews", $alcoholViews, PDO::PARAM_STR);
+        $stmt->bindParam(":iInterestedIN", $interested, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -1994,29 +2165,29 @@ class account extends db_connect
         return $result;
     }
 
-    public function get_iAlcoholViews()
+    public function get_iInterestedIN()
     {
-        $stmt = $this->db->prepare("SELECT iAlcoholViews FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iInterestedIN FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iAlcoholViews'];
+            return $row['iInterestedIN'];
         }
 
-        return 0;
+        return '';
     }
 
-    public function set_iLooking($looking)
+	public function set_iLiving($living)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET iLooking = (:iLooking) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iLiving = (:iLiving) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":iLooking", $looking, PDO::PARAM_STR);
+        $stmt->bindParam(":iLiving", $living, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -2027,29 +2198,29 @@ class account extends db_connect
         return $result;
     }
 
-    public function get_iLooking()
+    public function get_iLiving()
     {
-        $stmt = $this->db->prepare("SELECT iLooking FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iLiving FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iLooking'];
+            return $row['iLiving'];
         }
 
         return 0;
     }
-
-    public function set_iInterested($interested)
+	
+    public function set_iEducation($education)
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("UPDATE users SET iInterested = (:iInterested) WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET iEducation = (:iEducation) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(":iInterested", $interested, PDO::PARAM_STR);
+        $stmt->bindParam(":iEducation", $education, PDO::PARAM_STR);
 
         if ($stmt->execute()) {
 
@@ -2060,19 +2231,514 @@ class account extends db_connect
         return $result;
     }
 
-    public function get_iInterested()
+    public function get_iEducation()
     {
-        $stmt = $this->db->prepare("SELECT iInterested FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt = $this->db->prepare("SELECT iEducation FROM users WHERE id = (:accountId) LIMIT 1");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
 
             $row = $stmt->fetch();
 
-            return $row['iInterested'];
+            return $row['iEducation'];
         }
 
         return 0;
+    }
+
+    public function set_iPronouns($pronouns)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iPronouns = (:iPronouns) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iPronouns", $pronouns, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iPronouns()
+    {
+        $stmt = $this->db->prepare("SELECT iPronouns FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iPronouns'];
+        }
+
+        return '';
+    }
+	
+	    public function set_iSmoke($smoke)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iSmoke = (:iSmoke) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iSmoke", $smoke, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iSmoke()
+    {
+        $stmt = $this->db->prepare("SELECT iSmoke FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iSmoke'];
+        }
+
+        return 0;
+    }
+	
+	    public function set_iDrink($drink)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iDrink = (:iDrink) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iDrink", $drink, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iDrink()
+    {
+        $stmt = $this->db->prepare("SELECT iDrink FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iDrink'];
+        }
+
+        return 0;
+    }
+	
+	    public function set_iSexPosition($sexposition)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iSexPosition = (:iSexPosition) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iSexPosition", $sexposition, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iSexPosition()
+    {
+        $stmt = $this->db->prepare("SELECT iSexPosition FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iSexPosition'];
+        }
+
+        return 0;
+    }
+	
+	    public function set_iLookingFor($lookingfor)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iLookingFor = (:iLookingFor) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iLookingFor", $lookingfor, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iLookingFor()
+    {
+        $stmt = $this->db->prepare("SELECT iLookingFor FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iLookingFor'];
+        }
+
+        return '';
+    }
+	
+	    public function set_iInto($into)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iInto = (:iInto) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iInto", $into, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iInto()
+    {
+        $stmt = $this->db->prepare("SELECT iInto FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iInto'];
+        }
+
+        return '';
+    }
+	
+	    public function set_iSexualHealth($sexualhealth)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iSexualHealth= (:iSexualHealth) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iSexualHealth", $sexualhealth, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iSexualHealth()
+    {
+        $stmt = $this->db->prepare("SELECT iSexualHealth FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iSexualHealth'];
+        }
+
+        return 0;
+    }
+	
+	    public function set_iMusic($music)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iMusic = (:iMusic) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iMusic", $music, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iMusic()
+    {
+        $stmt = $this->db->prepare("SELECT iMusic FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iMusic'];
+        }
+
+        return '';
+    }
+	
+	    public function set_iMovies($movies)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iMovies = (:iMovies) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iMovies", $movies, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iMovies()
+    {
+        $stmt = $this->db->prepare("SELECT iMovies FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iMovies'];
+        }
+
+        return '';
+    }
+	
+	    public function set_iSports($sports)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iSports = (:iSports) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iSports", $sports, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iSports()
+    {
+        $stmt = $this->db->prepare("SELECT iSports FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iSports'];
+        }
+
+        return '';
+    }
+	
+	    public function set_iGoingOut($goingout)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iGoingOut = (:iGoingOut) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iGoingOut", $goingout, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iGoingOut()
+    {
+        $stmt = $this->db->prepare("SELECT iGoingOut FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iGoingOut'];
+        }
+
+        return '';
+    }
+	
+	 public function set_iOccupation($occupation)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iOccupation = (:iOccupation) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iOccupation", $occupation, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iOccupation()
+    {
+        $stmt = $this->db->prepare("SELECT iOccupation FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iOccupation'];
+        }
+
+        return '';
+    }
+	
+	 public function set_iPetPeeves($petpeeeves)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iPetPeeves = (:iPetPeeves) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iPetPeeves", $petpeeeves, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iPetPeeves()
+    {
+        $stmt = $this->db->prepare("SELECT iPetPeeves FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iPetPeeves'];
+        }
+
+        return '';
+    }
+	
+	 public function set_iFetishes($fetishes)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iFetishes = (:iFetishes) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iFetishes", $fetishes, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iFetishes()
+    {
+        $stmt = $this->db->prepare("SELECT iFetishes FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iFetishes'];
+        }
+
+        return '';
+    }
+	
+	 public function set_iDealBreaker($dealbreaker)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iDealBreaker = (:iDealBreaker) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iDealBreaker", $dealbreaker, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
+    public function get_iDealBreaker()
+    {
+        $stmt = $this->db->prepare("SELECT iDealBreaker FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iDealBreaker'];
+        }
+
+        return '';
     }
 
     public function set_allowShowMyBirthday($allowShowMyBirthday)

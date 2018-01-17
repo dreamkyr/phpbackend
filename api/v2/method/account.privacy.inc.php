@@ -22,12 +22,14 @@ if (!empty($_POST)) {
     $allowShowMyFriends = isset($_POST['allowShowMyFriends']) ? $_POST['allowShowMyFriends'] : 0;
     $allowShowMyGallery = isset($_POST['allowShowMyGallery']) ? $_POST['allowShowMyGallery'] : 0;
     $allowShowMyInfo = isset($_POST['allowShowMyInfo']) ? $_POST['allowShowMyInfo'] : 0;
+    $allowShowMyDistance = isset($_POST['allowShowMyDistance']) ? $_POST['allowShowMyDistance'] : 0;
 
     $allowShowMyLikes = helper::clearInt($allowShowMyLikes);
     $allowShowMyGifts = helper::clearInt($allowShowMyGifts);
     $allowShowMyFriends = helper::clearInt($allowShowMyFriends);
     $allowShowMyGallery = helper::clearInt($allowShowMyGallery);
     $allowShowMyInfo = helper::clearInt($allowShowMyInfo);
+    $allowShowMyDistance = helper::clearInt($allowShowMyDistance);
 
     $result = array("error" => true,
                     "error_code" => ERROR_UNKNOWN);
@@ -44,7 +46,7 @@ if (!empty($_POST)) {
 
     $account = new account($dbo, $accountId);
 
-    $account->setPrivacySettings($allowShowMyLikes, $allowShowMyGifts, $allowShowMyFriends, $allowShowMyGallery, $allowShowMyInfo);
+    $account->setPrivacySettings($allowShowMyLikes, $allowShowMyGifts, $allowShowMyFriends, $allowShowMyGallery, $allowShowMyInfo, $allowShowMyDistance);
 
     $result = $account->getPrivacySettings();
 
