@@ -17,7 +17,7 @@ if (!empty($_POST)) {
     $accountId = isset($_POST['accountId']) ? $_POST['accountId'] : 0;
     $accessToken = isset($_POST['accessToken']) ? $_POST['accessToken'] : '';
 
-    $distance = isset($_POST['distance']) ? $_POST['distance'] : 30;
+    $distance = isset($_POST['distance']) ? $_POST['distance'] : 80;
     $itemId = isset($_POST['itemId']) ? $_POST['itemId'] : 0;
 
  

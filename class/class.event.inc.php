@@ -36,12 +36,13 @@ class event extends db_connect
 
     public function createEvent($userId, $title, $topic, $image = "") {
 
+        $currentTime = time();
         $stmt = $this->db->prepare("INSERT INTO events (topic, user_id, title, image, created_at) value (:topic, :user_id, :title, :image, :created_at)");
         $stmt->bindParam(":topic", $topic, PDO::PARAM_STR);
         $stmt->bindParam(":user_id", $userId, PDO::PARAM_INT);
         $stmt->bindParam(":title", $title, PDO::PARAM_STR);
         $stmt->bindParam(":image", $image, PDO::PARAM_STR);
-        $stmt->bindParam(":created_at", date("Y-m-d H:i:s"), PDO::PARAM_STR);
+        $stmt->bindParam(":created_at", $currentTime, PDO::PARAM_STR);
 		
 		
         if ($stmt->execute()) {
@@ -240,12 +241,16 @@ class event extends db_connect
         if ($stmt->execute()) {
             $data = [];
             while ($row = $stmt->fetch()) {
+                $time = new language($this->db, $this->language);
                 $profileId = $row['user_id'];
+                $createAt = $row['created_at'];
                 $profile = new profile($this->db, $profileId);
                 $profile->setRequestFrom($this->requestFrom);
                 $profileInfo = $profile->getVeryShort();
                 unset($profile);
+
                 $row['user'] = $profileInfo;
+                $row['timeAgo'] = $time->timeAgo($createAt);
 
                 $eventId = $row['id'];
                 $events_like = new events_like($this->db);

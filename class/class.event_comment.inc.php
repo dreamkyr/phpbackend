@@ -73,13 +73,14 @@ class event_comment extends db_connect
                         "error_code" => ERROR_UNKNOWN);
 
       
+        $currentTime = time();
 
         $stmt = $this->db->prepare("INSERT INTO events_comments (event_id, fromUserId, replyToUserId, comment, createAt) value (:event_id, :fromUserId, :replyToUserId, :comment, :createAt)");
         $stmt->bindParam(":event_id", $event_id, PDO::PARAM_INT);
 	    $stmt->bindParam(":fromUserId", $this->requestFrom, PDO::PARAM_INT);
         $stmt->bindParam(":replyToUserId", $replyToUserId, PDO::PARAM_INT);
         $stmt->bindParam(":comment", $comment, PDO::PARAM_STR);
-        $stmt->bindParam(":createAt", date("Y-m-d H:i:s"), PDO::PARAM_STR);
+        $stmt->bindParam(":createAt", $currentTime, PDO::PARAM_STR);
 		
 		   if ($stmt->execute()) {
 				 $new_comment = $this->getLastItem();
@@ -177,13 +178,16 @@ class event_comment extends db_connect
        if ($stmt->execute()) {
 			$data = [];
             while ($row = $stmt->fetch()) {
-
-               $profileId = $row['fromUserId'];
+                $time = new language($this->db, $this->language);
+                $profileId = $row['fromUserId'];
+                $createAt = $row['createAt'];
                 $profile = new profile($this->db, $profileId);
                 $profile->setRequestFrom($this->requestFrom);
                 $profileInfo = $profile->getVeryShort();
+
                 unset($profile);
                 $row['user'] = $profileInfo;
+                $row['timeAgo'] = $time->timeAgo($createAt);
 
                 $data[] = $row;
             }
