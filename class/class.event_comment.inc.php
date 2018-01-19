@@ -171,7 +171,7 @@ class event_comment extends db_connect
         }
 		
 
-        $stmt = $this->db->prepare("SELECT * FROM events_comments WHERE event_id = (:event_id)  AND id < (:itemId) AND comment_status = 1 ORDER BY id DESC LIMIT 70");// LIMIT 20
+        $stmt = $this->db->prepare("SELECT * FROM events_comments WHERE event_id = (:event_id)  AND id < (:itemId) AND comment_status = 1 ORDER BY id LIMIT 70");// LIMIT 20
         $stmt->bindParam(':event_id', $event_id, PDO::PARAM_STR);
         $stmt->bindParam(':itemId', $itemId, PDO::PARAM_INT);
 
