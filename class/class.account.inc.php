@@ -1785,6 +1785,7 @@ class account extends db_connect
                                 "iAM" => stripcslashes($row['iAM']),
                                 "iInterestedIN" => stripcslashes($row['iInterestedIN']),
                                 "iOccupation" => stripcslashes($row['iOccupation']),
+                                "iRelationshipStatus"=>$row['iRelationshipStatus'],
 								"iLiving"=>$row['iLiving'],
                                 "iEducation" => $row['iEducation'],
 								"iPronouns" => stripcslashes($row['iPronouns']),
@@ -2180,6 +2181,24 @@ class account extends db_connect
         return '';
     }
 
+    public function set_iRelationshipStatus($iRelationshipStatus)
+    {
+        $result = array("error" => true,
+                        "error_code" => ERROR_UNKNOWN);
+
+        $stmt = $this->db->prepare("UPDATE users SET iRelationshipStatus = (:iRelationshipStatus) WHERE id = (:accountId)");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(":iRelationshipStatus", $iRelationshipStatus, PDO::PARAM_STR);
+
+        if ($stmt->execute()) {
+
+            $result = array('error' => false,
+                            'error_code' => ERROR_SUCCESS);
+        }
+
+        return $result;
+    }
+
 	public function set_iLiving($living)
     {
         $result = array("error" => true,
@@ -2196,6 +2215,21 @@ class account extends db_connect
         }
 
         return $result;
+    }
+
+    public function get_iRelationshipStatus()
+    {
+        $stmt = $this->db->prepare("SELECT iRelationshipStatus FROM users WHERE id = (:accountId) LIMIT 1");
+        $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+
+            $row = $stmt->fetch();
+
+            return $row['iRelationshipStatus'];
+        }
+
+        return 0;
     }
 
     public function get_iLiving()

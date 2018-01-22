@@ -33,9 +33,10 @@ if (!empty($_POST)) {
     $iZodiac = isset($_POST['iZodiac']) ? $_POST['iZodiac'] : 0;
     $iAM = isset($_POST['iAM']) ? $_POST['iAM'] : '';
     $iInterestedIN = isset($_POST['iInterestedIN']) ? $_POST['iInterestedIN'] : '';
+    $iRelationshipStatus = isset($_POST['iRelationshipStatus']) ? $_POST['iRelationshipStatus'] : '';
     $iLiving = isset($_POST['iLiving']) ? $_POST['iLiving'] : '';
     
-    $iOccupation = isset($_POST['iOccupation']) ? $_POST['iOccu∂pation'] : '';
+    $iOccupation = isset($_POST['iOccupation']) ? $_POST['iOccupation'] : '';
     $iEducation = isset($_POST['iEducation']) ? $_POST['iEducation'] : 0;
 	$iPronouns = isset($_POST['iPronouns']) ? $_POST['iPronouns'] : '';
     $iSmoke	= isset($_POST['iSmoke']) ? $_POST['iSmoke'] : 0;
@@ -63,6 +64,8 @@ if (!empty($_POST)) {
 	$iAM = helper::escapeText($iAM);
     $iInterestedIN = helper::clearText($iInterestedIN);
     $iInterestedIN = helper::escapeText($iInterestedIN);
+    $iRelationshipStatus = helper::clearText($iRelationshipStatus);
+	$iRelationshipStatus = helper::escapeText($iRelationshipStatus);
     $iLiving = helper::clearText($iLiving);
 	$iLiving = helper::escapeText($iLiving);
     $iEducation = helper::clearInt($iEducation);
@@ -164,6 +167,7 @@ if (!empty($_POST)) {
     $account->set_iZodiac($iZodiac);
     $account->set_iAM($iAM);
     $account->set_iInterestedIN($iInterestedIN);
+    $account->set_iRelationshipStatus($iRelationshipStatus);
     $account->set_iLiving($iLiving);
     $account->set_iOccupation($iOccupation);
     $account->set_iEducation($iEducation);
