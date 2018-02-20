@@ -24,8 +24,7 @@ if (!empty($_POST)) {
 
     $chatId = isset($_POST['chatId']) ? $_POST['chatId'] : 0;
 
- 
-
+    
     $clientId = helper::clearInt($clientId);
     $accountId = helper::clearInt($accountId);
 

@@ -111,12 +111,12 @@ class msg extends db_connect
         return $chatId;
     }
 
-    public function create($toUserId, $chatId,  $message = "", $imgUrl = "", $chatFromUserId = 0, $chatToUserId = 0, $deviceId = "", $listId = 0, $ios_deviceId = "", $stickerId = 0, $stickerImgUrl = "")
+    public function create($toUserId, $chatId,  $message = "", $imgUrl = "", $videoImgUrl, $videoUrl, $audioUrl, $chatFromUserId = 0, $chatToUserId = 0, $deviceId = "", $listId = 0, $ios_deviceId = "", $stickerId = 0, $stickerImgUrl = "")
     {
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        if (strlen($imgUrl) == 0 && strlen($message) == 0 && strlen($stickerImgUrl) == 0) {
+        if (strlen($imgUrl) == 0 && strlen($message) == 0 && strlen($stickerImgUrl) == 0 && strlen($videoUrl) == 0 && strlen($audioUrl) == 0 ) {
 
             return $result;
         }
@@ -140,12 +140,15 @@ class msg extends db_connect
         $ip_addr = helper::ip_addr();
         $u_agent = helper::u_agent();
 
-        $stmt = $this->db->prepare("INSERT INTO messages (chatId, fromUserId, toUserId, message, imgUrl, stickerId, stickerImgUrl, createAt, ip_addr, u_agent) value (:chatId, :fromUserId, :toUserId, :message, :imgUrl, :stickerId, :stickerImgUrl, :createAt, :ip_addr, :u_agent)");
+        $stmt = $this->db->prepare("INSERT INTO messages (chatId, fromUserId, toUserId, message, imgUrl, videoImgUrl, videoUrl, audioUrl, stickerId, stickerImgUrl, createAt, ip_addr, u_agent) value (:chatId, :fromUserId, :toUserId, :message, :imgUrl, :videoImgUrl, :videoUrl, :audioUrl, :stickerId, :stickerImgUrl, :createAt, :ip_addr, :u_agent)");
         $stmt->bindParam(":chatId", $chatId, PDO::PARAM_INT);
         $stmt->bindParam(":fromUserId", $this->requestFrom, PDO::PARAM_INT);
         $stmt->bindParam(":toUserId", $toUserId, PDO::PARAM_INT);
         $stmt->bindParam(":message", $message, PDO::PARAM_STR);
         $stmt->bindParam(":imgUrl", $imgUrl, PDO::PARAM_STR);
+        $stmt->bindParam(":videoImgUrl", $videoImgUrl, PDO::PARAM_STR);
+        $stmt->bindParam(":videoUrl", $videoUrl, PDO::PARAM_STR);
+        $stmt->bindParam(":audioUrl", $audioUrl, PDO::PARAM_STR);
         $stmt->bindParam(":stickerId", $stickerId, PDO::PARAM_INT);
         $stmt->bindParam(":stickerImgUrl", $stickerImgUrl, PDO::PARAM_STR);
         $stmt->bindParam(":createAt", $currentTime, PDO::PARAM_INT);
@@ -180,6 +183,9 @@ class msg extends db_connect
                             "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'],
                             "message" => htmlspecialchars_decode(stripslashes($message)),
                             "imgUrl" => $imgUrl,
+                            "videoImgUrl" => $videoImgUrl,
+                            "videoUrl" => $videoUrl,
+                            "audioUrl" => $audioUrl,
                             "stickerId" => $stickerId,
                             "stickerImgUrl" => $stickerImgUrl,
                             "createAt" => $currentTime,
@@ -769,6 +775,9 @@ class msg extends db_connect
                                  "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'], //$profileInfo['lowPhotoUrl']
                                  "message" => htmlspecialchars_decode(stripslashes($row['message'])),
                                  "imgUrl" => $row['imgUrl'],
+                                 "videoImgUrl" => $row['videoImgUrl'],
+                                 "videoUrl" => $row['videoUrl'],
+                                 "audioUrl" => $row['audioUrl'],
                                  "stickerId" => $row['stickerId'],
                                  "stickerImgUrl" => $row['stickerImgUrl'],
                                  "createAt" => $row['createAt'],
@@ -867,6 +876,9 @@ class msg extends db_connect
                                 "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'], //$profileInfo['lowPhotoUrl']
                                 "message" => htmlspecialchars_decode(stripslashes($row['message'])),
                                 "imgUrl" => $row['imgUrl'],
+                                "videoImgUrl" => $row['videoImgUrl'],
+                                "videoUrl" => $row['videoUrl'],
+                                "audioUrl" => $row['audioUrl'],
                                 "stickerId" => $row['stickerId'],
                                 "stickerImgUrl" => $row['stickerImgUrl'],
                                 "createAt" => $row['createAt'],
@@ -980,6 +992,9 @@ class msg extends db_connect
                                  "fromUserPhotoUrl" => $profileInfo['lowPhotoUrl'],
                                  "message" => htmlspecialchars_decode(stripslashes($row['message'])),
                                  "imgUrl" => $row['imgUrl'],
+                                 "videoImgUrl" => $row['videoImgUrl'],
+                                 "videoUrl" => $row['videoUrl'],
+                                 "audioUrl" => $row['audioUrl'],
                                  "stickerId" => $row['stickerId'],
                                  "stickerImgUrl" => $row['stickerImgUrl'],
                                  "seenAt" => $row['seenAt'],

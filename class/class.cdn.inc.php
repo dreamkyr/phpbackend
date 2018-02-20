@@ -90,6 +90,18 @@ class cdn extends db_connect
         return $result;
     }
 
+    public function uploadAudio($audioFilename){
+        rename("../../".$audioFilename, "../../".AUDIO_PATH.basename($audioFilename));
+
+        $result = array("error" => false,
+                        "error_code" => ERROR_SUCCESS,
+                        "fileUrl" => APP_URL."/".AUDIO_PATH.basename($audioFilename));
+
+        @unlink($audioFilename);
+
+        return $result;
+    }
+
     public function uploadVideo($imgFilename)
     {
         rename("../../".$imgFilename, "../../".VIDEO_PATH.basename($imgFilename));

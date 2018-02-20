@@ -1534,9 +1534,9 @@ class account extends db_connect
         return 0;
     }
 
-    public function setPrivacySettings($allowShowMyLikes, $allowShowMyGifts, $allowShowMyFriends, $allowShowMyGallery, $allowShowMyInfo, $allowShowMyDistance)
+    public function setPrivacySettings($allowShowMyLikes, $allowShowMyGifts, $allowShowMyFriends, $allowShowMyGallery, $allowShowMyInfo, $allowShowMyDistance, $allowShowMap)
     {
-        $stmt = $this->db->prepare("UPDATE users SET allowShowMyLikes = (:allowShowMyLikes), allowShowMyGifts = (:allowShowMyGifts), allowShowMyFriends = (:allowShowMyFriends), allowShowMyGallery = (:allowShowMyGallery), allowShowMyInfo = (:allowShowMyInfo), allowShowMyDistance = (:allowShowMyDistance)  WHERE id = (:accountId)");
+        $stmt = $this->db->prepare("UPDATE users SET allowShowMyLikes = (:allowShowMyLikes), allowShowMyGifts = (:allowShowMyGifts), allowShowMyFriends = (:allowShowMyFriends), allowShowMyGallery = (:allowShowMyGallery), allowShowMyInfo = (:allowShowMyInfo), allowShowMyDistance = (:allowShowMyDistance) , allowShowMap = (:allowShowMap) WHERE id = (:accountId)");
         $stmt->bindParam(":accountId", $this->id, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyLikes", $allowShowMyLikes, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyGifts", $allowShowMyGifts, PDO::PARAM_INT);
@@ -1544,6 +1544,7 @@ class account extends db_connect
         $stmt->bindParam(":allowShowMyGallery", $allowShowMyGallery, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyInfo", $allowShowMyInfo, PDO::PARAM_INT);
         $stmt->bindParam(":allowShowMyDistance", $allowShowMyDistance, PDO::PARAM_INT);
+        $stmt->bindParam(":allowShowMap", $allowShowMap, PDO::PARAM_INT);
         $stmt->execute();
     }
 
@@ -1552,7 +1553,7 @@ class account extends db_connect
         $result = array("error" => true,
                         "error_code" => ERROR_UNKNOWN);
 
-        $stmt = $this->db->prepare("SELECT allowShowMyLikes, allowShowMyGifts, allowShowMyFriends, allowShowMyGallery, allowShowMyInfo, allowShowMyDistance FROM users WHERE id = (:id)");
+        $stmt = $this->db->prepare("SELECT allowShowMyLikes, allowShowMyGifts, allowShowMyFriends, allowShowMyGallery, allowShowMyInfo, allowShowMyDistance, allowShowMap FROM users WHERE id = (:id)");
         $stmt->bindParam(":id", $this->id, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
@@ -1566,7 +1567,8 @@ class account extends db_connect
                             "allowShowMyFriends" => $row['allowShowMyFriends'],
                             "allowShowMyGallery" => $row['allowShowMyGallery'],
                             "allowShowMyInfo" => $row['allowShowMyInfo'],
-                            "allowShowMyDistance" => $row['allowShowMyDistance']);
+                            "allowShowMyDistance" => $row['allowShowMyDistance'],
+                            "allowShowMap" => $row['allowShowMap']);
         }
 
         return $result;
@@ -1808,6 +1810,8 @@ class account extends db_connect
                                 "allowShowMyLikes" => $row['allowShowMyLikes'],
                                 "allowShowMyGifts" => $row['allowShowMyGifts'],
                                 "allowPhotosComments" => $row['allowPhotosComments'],
+                                "allowShowMyDistance" => $row['allowShowMyDistance'],
+                                "allowShowMap" => $row['allowShowMap'],
                                 "allowComments" => $row['allowComments'],
                                 "allowMessages" => $row['allowMessages'],
                                 "allowLikesGCM" => $row['allowLikesGCM'],

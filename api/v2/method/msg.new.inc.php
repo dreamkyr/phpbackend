@@ -30,6 +30,10 @@ if (!empty($_POST)) {
 
     $listId = isset($_POST['listId']) ? $_POST['listId'] : 0;
 
+    $videoImgUrl = isset($_POST['videoImgUrl']) ? $_POST['videoImgUrl'] : "";
+    $videoUrl = isset($_POST['videoUrl']) ? $_POST['videoUrl'] : "";
+    $audioUrl = isset($_POST['audioUrl']) ? $_POST['audioUrl'] : "";
+
     $stickerId = isset($_POST['stickerId']) ? $_POST['stickerId'] : 0;
     $stickerImgUrl = isset($_POST['stickerImgUrl']) ? $_POST['stickerImgUrl'] : "";
 
@@ -59,6 +63,15 @@ if (!empty($_POST)) {
 
     $messageImg = helper::clearText($messageImg);
     $messageImg = helper::escapeText($messageImg);
+
+    $videoImgUrl = helper::clearText($videoImgUrl);
+    $videoImgUrl = helper::escapeText($videoImgUrl);
+
+    $videoUrl = helper::clearText($videoUrl);
+    $videoUrl = helper::escapeText($videoUrl);
+
+    $audioUrl = helper::clearText($audioUrl);
+    $audioUrl = helper::escapeText($audioUrl);
 
     $result = array("error" => true,
                     "error_code" => ERROR_UNKNOWN);
@@ -95,7 +108,7 @@ if (!empty($_POST)) {
         $messages = new msg($dbo);
         $messages->setRequestFrom($accountId);
 
-        $result = $messages->create($profileId, $chatId, $messageText, $messageImg, $chatFromUserId, $chatToUserId, $profileInfo['gcm_regid'], $listId, $profileInfo['ios_fcm_regid'], $stickerId, $stickerImgUrl);
+        $result = $messages->create($profileId, $chatId, $messageText, $messageImg, $videoImgUrl, $videoUrl, $audioUrl, $chatFromUserId, $chatToUserId, $profileInfo['gcm_regid'], $listId, $profileInfo['ios_fcm_regid'], $stickerId, $stickerImgUrl);
     }
 
     echo json_encode($result);

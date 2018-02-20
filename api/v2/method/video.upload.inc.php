@@ -54,6 +54,29 @@ if (!empty($_POST)) {
 //        $result = array("error" => true, "qwerty" => "b");
     }
 
+    if (isset($_FILES['uploaded_audio_file']['name'])) {
+
+        $currentTime = time();
+        $uploaded_file_ext = @pathinfo($_FILES['uploaded_audio_file']['name'], PATHINFO_EXTENSION);
+
+        if (@move_uploaded_file($_FILES['uploaded_audio_file']['tmp_name'], "../../".TEMP_PATH."{$currentTime}.".$uploaded_file_ext)) {
+
+            $cdn = new cdn($dbo);
+
+            $response = $cdn->uploadAudio(TEMP_PATH."{$currentTime}.".$uploaded_file_ext);
+
+            if ($response['error'] === false) {
+
+                $audioFileUrl = $response['fileUrl'];
+
+                $result = array("error" => false,
+                                "audioFileUrl" => $audioFileUrl);
+            }
+
+            unset($cdn);
+        }
+    }
+
     if (isset($_FILES['uploaded_video_file']['name'])) {
 
         $currentTime = time();
